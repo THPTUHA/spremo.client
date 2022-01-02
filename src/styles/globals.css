@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities{
+    @variants responsive {
+        .none{
+            display: none;
+        }
+    }
+}
+
+.ql-editor{
+    min-height: 300px;
+}
+
+.ql-editor{
+    font-size: 16px;
+}
+.over {
+    border: 3px dotted #666;
+}
+:root {
+    /* --st-modal-borderRadius: 0px;
+    --st-modal-boxShadow: 0 10px 50px rgba(0, 0, 0, 0.8);
+
+    --st-modal-backgroundColor: #2a2a2a;
+    --st-modal-titleTextColor: #eeeeee;
+    --st-modal-secondColor: #3c3c3c;
+
+    --st-dialog-contentColor: #ffffff; */
+
+    --st-modal-transformVisible: translate3d(-50%, -50%, 0) scale(1)!important;
+    --st-modal-transformHidden: translate3d(-50%, -50%, 0) scale(0.1)!important;
+
+    --st-button-primaryColor: #e02329!important;
+    --st-button-primaryTextColor: #fff!important;
+    --st-dialog-padding: 1.5rem !important;
+    --st-dialog-maxWidth: 320px !important;
+}
