@@ -9,6 +9,7 @@ import Fetch from '../../services/Fetch'
 import SidebarHome from '../../components/sidebar/SidebarHome'
 import { BsFilter } from 'react-icons/bs'
 import { HiOutlineBadgeCheck } from 'react-icons/hi'
+import {FcClock} from 'react-icons/fc'
 // import Link from 'next/link';
 import { Link } from 'react-router-dom';
 import { Helper } from '../../services/Helper';
@@ -17,185 +18,79 @@ import Meta from '../../components/ui/Meta';
 import { MeHook } from '../../store/me/hooks';
 import HomeFooter from '../../components/footer/HomeFooter';
 import { Toast } from '../../services/Toast';
+import { ChallengeFunctions } from '../../store/challenge/functions';
 
 type ResponseType = {
 	all_podcasts: RawPodcast[],
+	recent_podcasts: RawPodcast[],
 	new_podcasts: RawPodcast[],
-	podcast_listens: RawPodcast[],
-	podcast_submits: RawPodcastSubmit[],
-	podcast_challenges: RawPodcastChallenge[],
-	challenges: RawChallenge[],
-	records: RawRecordChallengeUser[],
+	podcast_submits: RawPodcastSubmit[]
 	code: number
 }
 
-const mapChallenge = (challenges: RawChallenge[])=>{
-	return challenges.reduce((pre,cur,index)=>{
-		return {...pre,[cur.id]:index};
-	},{})as {[key:number]:number};
-}
-
-const mapChallengeByPodcastId = (challenges: RawChallenge[])=>{
-	const mapping: {[key:number]:RawChallenge[]} = {};
-	for(const item of challenges){
-		if(item.start_time <= Helper.time()){
-			const {podcast_ids} = item;
-			for(const id of podcast_ids){
-				const temp = mapping[id];
-				if(temp) temp.push(item);
-				else mapping[id] = [item];
-			}
-		}
-	}
-	return mapping;
-}
-
-const mapPodcastSubmit = (podcast_submits:RawPodcastSubmit[])=>{
-	return podcast_submits.reduce((pre,cur)=>{
-		return {...pre,[cur.podcast_id]:cur};
-	},{})as {[key:number]:RawPodcastSubmit};
-}
-
-const mapPodcastChallenge = (podcast_challenges:RawPodcastChallenge[])=>{
-	return podcast_challenges.reduce((pre,cur)=>{
-		return {...pre,[cur.podcast_id+"#"+cur.challenge_id]:cur};
-	},{})as {[key:string]:RawPodcastChallenge};
-}
-
-const getTypePodcast = (map_challenge_by_podcast:{[key:number]:RawChallenge[]},map_podcast_submit:{[key:number]:RawPodcastSubmit},podcasts:RawPodcast[] )=>{
-	for(const podcast of podcasts){
-		if(map_challenge_by_podcast[podcast.id]){
-			podcast.challenges = map_challenge_by_podcast[podcast.id];
-		}else{
-			podcast.podcast_submit = map_podcast_submit[podcast.id];
-		}
-	}
+const mapPodcast = (podcasts:RawPodcast[]) =>{
+    const mapping = {}  as {[key:number]:RawPodcast};
+	for(const podcast of podcasts)
+        mapping[podcast.id] = podcast;
+    return mapping;
 }
 
 const Home = () => {
 	const [openSidebar, setOpenSidebar] = useState(true);
-	const [is_joins, setIsJoins] = useState<{[id:number]:boolean}>({});
 	const collections = PodcastCollectionHook.useAll();
 
 	const me = MeHook.useMe();
 	const state = useAsync(async () => {
-		const res = await Fetch.postWithAccessToken<ResponseType>('/api/home/', {});
-		if (res.status === 200) {
-			if (res.data && res.data.code === Code.SUCCESS) {
-				// console.log(res.data);				
-				const {all_podcasts,podcast_challenges,new_podcasts,podcast_submits,challenges,podcast_listens,records} = res.data;
-				const map_challenge =  mapChallenge(challenges);
-				const map_podcast_submit = mapPodcastSubmit(podcast_submits);
-				const map_podcast_challenge = mapPodcastChallenge(podcast_challenges);
-				
-				const map_challenge_by_podcast = mapChallengeByPodcastId(challenges);			
-				getTypePodcast(map_challenge_by_podcast,map_podcast_submit,podcast_listens);
-				getTypePodcast(map_challenge_by_podcast,map_podcast_submit,all_podcasts);
-				getTypePodcast(map_challenge_by_podcast,map_podcast_submit,new_podcasts);
-
-				for(const record of records){
-					challenges[map_challenge[record.challenge_id]].is_join = true;
-				}
-				console.log(map_challenge_by_podcast);
+		const res = await Fetch.postWithAccessToken<ResponseType>('/api/podcasts/home', {});
+		if (res.status == 200) {
+			if (res.data && res.data.code == Code.SUCCESS) {
 				return {
-					all_podcasts: all_podcasts,
-					podcast_listens: podcast_listens,
-					new_podcasts: new_podcasts,
-					challenges: challenges,
-					map_podcast_challenge: map_podcast_challenge
+					all_podcasts: res.data.all_podcasts,
+					recent_podcasts: res.data.recent_podcasts,
+					new_podcasts: res.data.new_podcasts,
+					podcast_submits: res.data.podcast_submits
 				}
 			}
 		}
+
 		return {
 			all_podcasts: [],
+			recent_podcasts: [],
 			new_podcasts: [],
-			challenges: [],
-			podcast_listens: [],
-			map_podcast_challenge:{} as {[key:string]:RawPodcastChallenge}
+			podcast_submits: []
 		}
 	}, [me]);
 
-	useEffect(()=>{
-		if(state.value){
-			const {challenges} = state.value;
-			const is_joins = {} as {[id:number]:boolean};
-			for(const challenge of challenges){
-				if(challenge.is_join){
-					is_joins[challenge.id] = true;
-				}
-			}
-			setIsJoins(is_joins);
+    const challenge_state = useAsync(async () => {
+		try {
+            const res = await Fetch.postWithAccessToken<{challenges: RawChallenge[], user_records: RawRecordChallengeUser[], podcasts:RawPodcast[], code: number, message:string}>('/api/challenges/home', {});
+            if (res.status == 200) {
+                if (res.data && res.data.code == Code.SUCCESS) {
+					const {podcasts,challenges,user_records} = res.data;
+					ChallengeFunctions.loadChallenges(challenges);
+					const map_podcast = mapPodcast(podcasts);
+                    return {
+                        challenges: challenges,
+						map_podcast: map_podcast,
+                        user_records: user_records
+                    }
+                }
+            }else{
+                Toast.error(res.data.message);
+            }
+
+        } catch (error) {
+            console.log(error);
+            Toast.error("ERROR!!");
+        }
+
+		return {
+			map_podcast:{} as {[key:number]:RawPodcast},
+			challenges: [],
+            user_records: []
 		}
-	},[state.value]);
+	}, [me]);
 
-	const joinChallenge =async (challenge:RawChallenge)=>{
-		const res = await Fetch.postWithAccessToken<{ code: number ,result:RawRecordChallengeUser,message:string}>("/api/challenge/join", {challenge_id:challenge.id});
-		if (res && res.data) {
-			if (res.data.code != Code.SUCCESS) {
-				Toast.error(res.data.message)
-				return;
-			}
-			else {
-				setIsJoins({...is_joins,[challenge.id]:true});
-				Toast.success("Join Challenge Successful!")
-				return;
-			}
-		}
-	}
-
-	const initStatus = (challenge:RawChallenge)=>{
-		const time = Helper.time();
-		return 	challenge.end_time<=time?Constants.CHALLENGE.FINSHED
-				:challenge.start_time>time?Constants.CHALLENGE.COMING 
-				:Constants.CHALLENGE.DURING;
-	}
-
-	const ChallengeItem = ({challenge, is_join,index}:{challenge:RawChallenge,is_join: boolean, index:number})=>{
-		const status = initStatus(challenge);
-
-		return (
-			<div className="w-full mb-10 md:mb-6 ">
-				<div className=" 2xl:w-9/12 items-start md:w-11/12 w-full flex md:flex-col box-border pt-2 pb-5 px-3  py-1  shadow-md hover:shadow-lg rounded-lg transition-all">
-					<div className="w-full">
-						<Link to={`/challenge/detail/${challenge.id}`}>
-							<img className="h-64 w-full rounded-lg cursor-pointer" src={`${Constants.IMAGE_URL + challenge.background_image}`} alt="" />
-						</Link>
-					</div>
-					<div className="flex ml-3 md:ml-0 md:mt-3 px-0 justify-items-start md:justify-between md:flex-row flex-col-reverse w-full ">
-						<div className="ml-2">
-							<div className="">
-								<Link to={`/challenge/detail/${challenge.id}`}>
-									<div className="mb-0.5 mt-0 text-lg font-bold cursor-pointer"> {challenge.name}</div>
-								</Link>
-							</div>
-							<div className="flex text-shadow">
-								<div className="">Thời gian diễn ra:</div>
-								<div className="text-sm mt-1 ml-1">{Helper.getExactDay(challenge.start_time)}</div>
-								<div className="text-sm mt-1">-{Helper.getExactDay(challenge.end_time)}</div>
-							</div>
-						</div>
-						{
-							status===Constants.CHALLENGE.COMING?(		
-								<div className="flex justify-items-end ">
-									{
-										!is_join?(
-											<button onClick={()=>{joinChallenge(challenge)}} className="outline-none w-24 mr-2 focus:outline-none bg-green-500 text-white flex mb-6 items-center justify-center py-1 rounded font-medium  shadow hover:bg-green-600 transition-all">Tham gia</button>
-										):<span className="text-green-500  font-medium mr-2 mt-1">
-											Đã tham gia
-										</span>
-									}
-								</div>
-							):status===Constants.CHALLENGE.FINSHED?(
-								<div>Đã kết thúc</div>
-							):(
-								<div>Đang diễn ra</div>
-							)
-						} 
-					</div>
-				</div>
-			</div>
-		)
-	}
 	return (<>
 		<Meta />
 		<div className="flex w-full items-stretch">
@@ -208,13 +103,45 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="home container mx-auto">
-					<div className=" w-full mb-10 md:mb-6">
+                    <div className=" w-full mb-10 md:mb-6">
 						<div className="w-full flex flex-swap items-stretch">
-							{state.value && state.value.challenges.map((item,index) =><ChallengeItem key={item.id} challenge={item} is_join={is_joins[item.id]} index={index} />)}
+							{challenge_state.value && challenge_state.value.challenges.map((item,index) =><ChallengeItem key={item.id} challenge={item}  />)}
 						</div>
 					</div>
+                    {
+						challenge_state.value && challenge_state.value.challenges.map((challenge) =>{
+							if(challenge.challenge_type.limit_podcast.status && challenge.start_time < Helper.time()){
+								return (
+									<div key={challenge.id} className="w-full mt-5">
+										<div className="mb-4 w-full flex items-center justify-between">
+											<h3 className=" text-base font-semibold">{challenge.name}</h3>
+											{
+												challenge.challenge_type.limit_podcast.podcasts.length > 6 &&
+												<Link to={`/challenges/detail/${Helper.generateCode(challenge.name)}/${challenge.id}`} >
+													<a className=" text-primary hover:text-primary-dark transition-all flex items-center text-sm">
+														<span className="mr-1">See all</span>
+														<span className=""><FaChevronRight /> </span>
+													</a>
+												</Link>
+											}
+										</div>
+										<div className="w-full flex flex-wrap">
+											{state.loading ?
+												[1, 2, 3, 4, 5, 6].map((e) => <Replacement key={e} />) : (
+													challenge.challenge_type.limit_podcast.podcasts.slice(0, 6).map(e => {
+																return (
+																	challenge_state.value && challenge_state.value.map_podcast[e.id] &&
+																		<PodcastItem key={e.id} podcast={challenge_state.value.map_podcast[e.id]}/>
+																)
+														}))}
+										</div>
+									</div>
+								)
+							}
+						})
+					}
 					<div className="w-full mt-3">
-						{state.value && state.value.podcast_listens.length > 0 && <div className="mb-4 w-full flex items-center justify-between">
+						{state.value && state.value.recent_podcasts.length > 0 && <div className="mb-4 w-full flex items-center justify-between">
 							<h3 className=" text-base font-semibold">Recent Played</h3>
 							<Link to={`/podcasts`} >
 								<a className=" text-primary hover:text-primary-dark transition-all flex items-center text-sm">
@@ -226,10 +153,8 @@ const Home = () => {
 						<div className="w-full flex flex-wrap items-stretch">
 							{
 								state.loading ? [1, 2, 3].map((e) => <SmallReplacement key={e} />) : (<>
-									{state.value && state.value.podcast_listens.slice(0,6)
-										.map(podcast =>{
-											return <PodcastItem key={podcast.id} podcast={podcast} map_podcast_challenge={state.value.map_podcast_challenge}/>
-										})}
+									{state.value && state.value.recent_podcasts.slice(0, 6)
+										.map(podcast => <PodcastItem key={podcast.id} podcast={podcast} podcast_submits={state.value.podcast_submits} />)}
 								</>)
 							}
 						</div>
@@ -248,7 +173,7 @@ const Home = () => {
 							{state.loading ?
 								[1, 2, 3].map((e) => <SmallReplacement key={e} />) : (<>
 									{state.value && state.value.new_podcasts.slice(0, 3)
-										.map(podcast => <BigPodcastItem key={podcast.id} podcast={podcast} collections={collections}/>)
+										.map(podcast => <BigPodcastItem key={podcast.id} podcast={podcast} collections={collections} />)
 									}
 								</>)}
 						</div>
@@ -266,10 +191,8 @@ const Home = () => {
 						<div className="w-full flex flex-wrap">
 							{state.loading ?
 								[1, 2, 3, 4, 5, 6].map((e) => <Replacement key={e} />) : (
-									state.value && state.value.all_podcasts
-										.map(podcast => {
-												return <PodcastItem key={podcast.id} podcast={podcast} map_podcast_challenge={state.value.map_podcast_challenge}/>
-										}))}
+									state.value && state.value.new_podcasts.slice(0, 6)
+										.map(podcast => <PodcastItem key={podcast.id} podcast={podcast} podcast_submits={state.value.podcast_submits} />))}
 						</div>
 					</div>
 				</div>
@@ -293,7 +216,7 @@ const Home = () => {
 interface PodcastItemProps {
 	podcast: RawPodcast,
 	collections?: RawPodcastCollection[],
-	podcast_submits?: RawPodcastSubmit[],
+	podcast_submits?: RawPodcastSubmit[]
 }
 
 const BigPodcastItem = ({ podcast, collections }: PodcastItemProps) => {
@@ -314,20 +237,7 @@ const BigPodcastItem = ({ podcast, collections }: PodcastItemProps) => {
 								{podcast.name}
 							</p>
 						</div>
-						<div className='flex flex-col'>
-							{
-								podcast.challenges?.map((challenge)=>{
-									return (
-										challenge.start_time <= Helper.time()?(
-											<div key={challenge.id} className='flex text-green-500 items-center'>
-												<HiOutlineBadgeCheck/>
-												<div>{challenge.name}</div>
-											</div>
-										):""
-									)
-								})
-							}
-						</div>
+
 						<div className="text-xs whitespace-nowrap mb-2 md:mb-0 md:ml-3 flex items-center">
 							<span className="text-primary-dark bg-primary-light font-medium rounded px-1 py-1">
 								{podcast_collections.length > 0 ? podcast_collections[0].name : "Tự do"}
@@ -340,9 +250,46 @@ const BigPodcastItem = ({ podcast, collections }: PodcastItemProps) => {
 	);
 };
 
-const PodcastItem = ({podcast,map_podcast_challenge}:{podcast:RawPodcast, map_podcast_challenge:{[key:string]:RawPodcastChallenge}})=>{
-	return (
-	<div className="w-full md:w-1/2 semi-lg:w-1/3 mb-10 md:mb-6">
+const ChallengeItem = ({challenge}:{challenge:RawChallenge})=>{
+    return (
+        <div className = "w-full mt-4 cursor-pointer  relative" >
+            <Link to={`/challenges/detail/${Helper.generateCode(challenge.name)}/${challenge.id}`}>
+                <div className='w-full'>
+                    <img className="h-64 w-full cursor-pointer" src={`${Constants.IMAGE_URL + challenge.background_image}`} alt="" />
+                    <div className='absolute top-3/4 flex justify-center w-full'>
+						<button className='text-white bg-red-700 px-4 py-1 rounded-full '>THAM GIA NGAY</button>
+					</div>
+                </div>
+            </Link>
+        </div>
+    )
+}
+
+const PodcastItem = ({ podcast, podcast_submits }: PodcastItemProps) => {
+
+	var podcast_submit = useMemo(() => {
+		var submits = podcast_submits ? podcast_submits : [];
+		return submits.find(e => e.podcast_id == podcast.id);
+	}, [podcast, podcast_submits]);
+
+	var percent_complete = useMemo(() => {
+		if (podcast_submit) {
+			var submit_words_num = podcast_submit.draft.replaceAll(FILLER_TEXT, "").replace(/\s+/g, " ").split(" ").length;
+			var content_words_num = (podcast_submit.content ? podcast_submit.content : '').replaceAll(FILLER_TEXT, "").replace(/\s+/g, " ").split(" ").length;
+			submit_words_num = submit_words_num > content_words_num ? submit_words_num : content_words_num;
+			var words_num = podcast.result.replace(/\s+/g, " ").split(" ").length;
+
+			if (podcast_submit.metatype == 'hint') {
+				return Math.min(100, 100 * (submit_words_num - podcast.hint.length) / (words_num - podcast.hint.length));
+			}
+
+			return Math.min(100, 100 * (submit_words_num) / (words_num));
+		}
+
+		return 0;
+	}, [podcast_submit, podcast]);
+
+	return (<div className="w-full md:w-1/2 semi-lg:w-1/3 mb-10 md:mb-6">
 		<Link to={`/podcasts/detail/${Helper.generateCode(podcast.name)}/${podcast.id}`}>
 			<a className="md:w-11/12 w-full flex items-center md:items-stretch box-border px-3  py-2 hover:shadow-lg rounded-lg transition-all">
 				<div
@@ -358,34 +305,19 @@ const PodcastItem = ({podcast,map_podcast_challenge}:{podcast:RawPodcast, map_po
 						<p className="text-base text-gray-500 leading-5 line-clamp-2">
 							{podcast.name}
 						</p>
-						{
-							podcast.challenges? podcast.challenges.map(({id,name,start_time})=>{
-								return (
-									start_time <= Helper.time()?(
-										<div key={id}>
-											<div className='flex text-green-500 items-center'>
-												<HiOutlineBadgeCheck/>
-												<div>{name}</div>
-											</div>
-											{map_podcast_challenge[podcast.id+"#"+id] &&<div className="relative pt-1">
-												<div className={`overflow-hidden h-2 mb-4 text-xs flex rounded ${map_podcast_challenge[podcast.id+"#"+id].is_submitted ? 'bg-red-600' : 'bg-gray-200'}`}>
-													<div style={{ width: `${Math.min(100*(map_podcast_challenge[podcast.id+"#"+id].metatype=="hint"?map_podcast_challenge[podcast.id+"#"+id].ans_hint/podcast.hint_size :(map_podcast_challenge[podcast.id+"#"+id].ans_without_hint/podcast.result_size)),100)}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
-												</div>
-											</div>}
-										</div>
-									):""
-								)
-							}): podcast.podcast_submit && (
-								<div className="relative pt-1">
-									<div className={`overflow-hidden h-2 mb-4 text-xs flex rounded ${podcast.podcast_submit.status === PostCastSubmitType.SUBMITTED  ? 'bg-red-600' : 'bg-gray-200'}`}>
-										<div style={{ width: `${Math.min(100*(podcast.podcast_submit.metatype=="hint"? podcast.podcast_submit.ans_hint/podcast.hint_size :(podcast.podcast_submit.ans_without_hint/podcast.result_size)),100)}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
-									</div>
-								</div>
-							)
-						}
+						{podcast_submit && (<div className="relative pt-1">
+							<div className={`overflow-hidden h-2 mb-4 text-xs flex rounded ${podcast_submit.status == PostCastSubmitType.SUBMITTED ? 'bg-red-600' : 'bg-gray-200'}`}>
+								<div style={{ width: `${percent_complete}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
+							</div>
+						</div>)}
+
 					</div>
 
 					<div className="flex w-full justify-between mt-1">
+						<div className="flex items-center text-xs">
+							<span className="text-sm mr-1"><FaHeadphonesAlt /></span>
+							<span className=" font-light">{podcast.views ? podcast.views : 0}</span>
+						</div>
 						<div className="flex items-center text-xs">
 							<span className="text-sm mr-1 text-primary"><GrResources /></span>
 							<span className=" font-light"> {PodcastSource[podcast.source_key].source_name} </span>
@@ -396,6 +328,7 @@ const PodcastItem = ({podcast,map_podcast_challenge}:{podcast:RawPodcast, map_po
 		</Link>
 	</div>);
 }
+
 
 const SmallReplacement = () => {
 	return (

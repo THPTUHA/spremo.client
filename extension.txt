@@ -1,0 +1,142 @@
+import { useRouter } from 'next/router';
+// import LogEvent from 'packages/firebase/LogEvent';
+import React, { useContext, useMemo, useRef, useState } from 'react';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Helper } from '../../services/Helper';
+import { IoMdCloseCircle } from "react-icons/io";
+import { CSSTransition } from 'react-transition-group';
+import OutsideClickDetection from "../../components/ui/OutsideClickDetection";
+import { BsFillCaretDownFill, BsFillCaretUpFill } from 'react-icons/bs';
+import {  Search } from '../../Constants';
+import { PodcastCollectionHook } from '../../store/podcast.collection/hooks';
+
+interface Tag{
+    id:number,
+    name:string
+    value: number,
+    type: string,
+    label: string,
+    selected: boolean
+}
+
+const SearchItem = () => {
+    // const route = useRouter();
+    const collections = PodcastCollectionHook.useAll();
+    const selected = useRef(false);
+    const tags = useMemo(()=>{
+        const searchs = Search.tags;
+        console.log(selected.current)
+        if(!selected.current && collections.length){
+            console.log("Collec");
+            for(const collection of collections){
+                searchs.push({
+                    id: collection.id+100, name: collection.name,label:collection.name, value: collection.id, type:"collection",selected:false
+                })
+            }
+            selected.current = true;
+        }
+        return searchs;
+    },[collections]);
+
+    const [search, setSearch] = useState('');
+    const [tag_hints,setTagHints] = useState<Tag[]>([]);
+    const [tags_selected, setTagsSelected] = useState<Tag[]>([]);
+    const [openSort, setOpenSort] = useState(false);
+
+    useLocation();
+    const navigate = useNavigate()
+
+    const addTag = (tag:Tag)=>{
+        const new_tags = [...tags_selected];
+        new_tags.push(tag);
+        setTagsSelected(new_tags);
+        setSearch("");
+    }
+
+    const removeTag = (tag: Tag)=>{
+        const new_tags = tags_selected.filter((e)=>e.id!=tag.id);
+        setTagsSelected(new_tags);
+    }
+
+    useEffect(()=> {
+        // const {q} = Helper.getURLParams();
+        // console.log(q);
+        if (search) {
+            const temp = search.toLowerCase();
+            console.log(search);
+            setSearch(search);
+            setTagHints(tags.filter((tag) => (tag.name.toLowerCase().substring(0,temp.length) == temp)));
+        }else setTagHints([]);
+    }, [search]);
+
+    const onSubmit = (e:any) => {
+        // LogEvent.sendEvent("search_item.filter");
+        if (e.key === 'Enter') {
+            setSearch("");
+            navigate(`../search${Helper.getUrlQuery({
+                ...Helper.getParamFromTag(tags_selected),
+                q: search
+            })}`);
+        }
+    }
+
+    return (
+        <>
+           <OutsideClickDetection outsideFunc={() => setOpenSort(false)}>
+                <div className=" relative">
+                   {
+                        tags_selected.length?
+                        <div onClick={() => setOpenSort(!openSort)} className=" flex items-center  cursor-pointer">
+                            <div className="flex text-base text-primary items-center justify-between flex-1">
+                                <span className="inline-block font-semibold mr-1">{tags_selected[0].name}</span>
+                                <span>{!openSort?<BsFillCaretUpFill />:<BsFillCaretDownFill />}</span>
+                            </div>
+    
+                        </div>:""
+                   }
+                    <CSSTransition
+                        in={openSort}
+                        timeout={300}
+                        classNames="sort-box"
+                        unmountOnExit
+                    >
+                        <div className="absolute top-full right-0 ">
+
+                            <div className=" min-w-max py-1 rounded shadow bg-white">
+                                {tags_selected.map((tag) => (
+                                <div key={tag.id} className="cursor-pointer flex shadow-md mb-2 items-center mx-0.5 bg-primary px-2 py-1.5 rounded-full
+                                hover:bg-primary-dark transition-all hover:shadow-lg
+                            ">
+                                <p style={{ maxWidth: '8rem' }} className=" text-white text-sm overflow-hidden cursor-pointer whitespace-nowrap overflow-ellipsis">
+                                    #{tag.name}</p>
+                                <span  onClick={()=>{removeTag(tag)}} className="ml-1 text-white">
+                                    <IoMdCloseCircle />
+                                </span>
+                            </div>
+                                ))}
+                            </div>
+                        </div>
+                    </CSSTransition>
+                </div>
+            </OutsideClickDetection>
+           <div>
+            <input autoComplete={undefined} id="search" className="focus:outline-none bg-transparent"
+                type="text" placeholder="Search..." value={search} 
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={onSubmit}
+                />
+                {
+                    <div className='absolute bg-white w-56 shadow-lg rounded-lg top-10 '>
+                        {
+                            tag_hints.map((tag)=><div key={tag.id} onClick={()=>{addTag(tag)}} className='cursor-pointer ml-5 hover:text-green-500'>
+                                #{tag.name}</div>)
+                        }
+                    </div> 
+                }
+           </div>
+        </>
+    )
+};
+
+export default SearchItem;

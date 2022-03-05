@@ -21,70 +21,22 @@ import { HiOutlineBadgeCheck } from "react-icons/hi";
 
 interface Props {
     podcast: RawPodcast,
-    podcast_submit: RawPodcastSubmit,
-    metatype?:{
-        id:number,
-        challenge_id: number,
-        challenge_name: string
-    }
+    podcast_submit: RawPodcastSubmit
 }
 
-interface ResponseType {
-    user_record: RawPodcastChallenge,
-    records: RawPodcastChallenge[],
-    page_size: number,
-    rank: number,
-    code: number,
-    message:string 
-}
-
-const getUserId = (members:{score:number,user_id:number}[],records?: RawPodcastChallenge[])=>{
-    if(records && records.length)
-        return records.map(e=>e.user_id);
-    return members.map(e=>e.user_id);
-}
-const Result = ({ podcast, podcast_submit,metatype}: Props) => {
+const Result = ({ podcast, podcast_submit }: Props) => {
 
     const [enable_listen, setEnableListen] = useState(false);
     const [selected_correct_word, setCorrectWord] = useState(-1);
     const [openModal, setOpenModal] = useState(false);
-    const [page,setPage] = useState(1);
 
+    UserHook.useFetchUsers(podcast.members.map(e => e.user_id));
     useEffect(() => {
         Voice.init();
     }, [])
-    const me = MeHook.useMe();
-    const state = useAsync(async()=>{
-       if(metatype){
-            console.log("Fecth list");
-            const res = await Fetch.postWithAccessToken<ResponseType>('/api/record.challenge.user/podcast.result.user_list', {
-                id: podcast.id,
-                challenge_id: metatype.challenge_id,
-                record_challenge_user_id: metatype.id,
-                page:page
-            });
-            if(res.status == 200){
-                if(res.data && res.data.code == Code.SUCCESS){
-                    return {
-                        records: res.data.records,
-                        user_record: res.data.user_record,
-                        rank: res.data.rank,
-                        page_size: res.data.page_size
-                    }
-                }
-            }
-            return {
-                records: [],
-                user_record: {} as RawPodcastChallenge,
-                rank:0,
-                page_size:0
-            } 
-       }
-    },[page,me]);
-
-    UserHook.useFetchUsers(getUserId(podcast.members,state.value?.records));
 
     const sumarize_words = useMemo(()=> {
+
         var wrong_words: {[key: string]: {
             references: string[],
             freq: number
@@ -109,7 +61,7 @@ const Result = ({ podcast, podcast_submit,metatype}: Props) => {
             references: wrong_words[key].references
         }));
     }, [podcast_submit])
-    console.log(state.value?.user_record);
+
     return (<>
         {podcast && (<>
             <div className="w-full pb-32 pl-5 sm:pl-10 pr-5 2xl:pr-20 sm:pr-10 mb-20">
@@ -120,12 +72,7 @@ const Result = ({ podcast, podcast_submit,metatype}: Props) => {
                     <h2 className=" text-xl text-gray-900 ml-4 font-bold">
                         {podcast.sub_name ? podcast.sub_name : ""}
                     </h2>
-                    {metatype && <>
-                        <HiOutlineBadgeCheck className="ml-3 text-green-500"/>
-                        <h2 className=" text-xl text-green-500 font-bold">
-                            {metatype.challenge_name}
-                        </h2>
-                    </>}
+
                     <a
                         onClick={() => setEnableListen(!enable_listen)}
                         className=" ml-4  bg-primary text-white py-1 px-3 rounded-2xl font-medium rounded shadow hover:bg-primary-dark transition-all cursor-pointer flex items-center justify-center ">
@@ -151,19 +98,8 @@ const Result = ({ podcast, podcast_submit,metatype}: Props) => {
                             <h3 className=" font-semibold text-2xl">Top Results</h3>
                             <div className="w-full ">
                                 {
-                                    state.value?<BillboardItem key={state.value.user_record.id} index={state.value.rank} user_id={state.value.user_record.user_id} score={state.value.user_record.data[podcast.id].point} is_user={true} />:""
+                                    podcast.members.sort((a, b) => b.score - a.score).map((member, index) => <BillboardItem key={index} index={index} user_id={member.user_id} score={member.score} />)
                                 }
-                                {
-                                   state.value?state.value.records.map((e,index)=><BillboardItem key={e.id} index={index} user_id={e.user_id} score={e.point} />)
-                                        :podcast.members.sort((a, b) => b.score - a.score).map((member, index) => <BillboardItem key={index} index={index} user_id={member.user_id} score={member.score} />)
-                                }
-                            </div>
-                            <div className="flex ml-2  justify-center ">
-                               {metatype && <>
-                                    <BsArrowLeftCircle onClick={()=>(page-1)<=0?page:setPage(page-1)} className="w-6 h-6 cursor-pointer"/>
-                                    <div className="flex ml-2 mb-1 text-xl ">{page}</div>
-                                    <BsArrowRightCircle onClick={()=>page*6>= (state.value?state.value.page_size:0)?page:setPage(page+1)} className="w-6 h-6 ml-2 cursor-pointer"/>
-                               </>}
                             </div>
                         </div>
                     </div>
@@ -277,8 +213,7 @@ export default Result
 interface BillboardItemProps {
     user_id: number,
     index: number,
-    score: number,
-    is_user?: boolean
+    score: number
 }
 
 const BillboardItem = (props: BillboardItemProps) => {
@@ -287,7 +222,7 @@ const BillboardItem = (props: BillboardItemProps) => {
 
     return (
         <>
-            {user && <div className={`w-full px-2 py-4 hover:bg-gray-100 rounded-md ${props.is_user?"bg-green-100":""}`}>
+            {user && <div className='w-full px-2 py-4 hover:bg-gray-100 rounded-md'>
                 <div className="flex flex-row justify-between">
                     <div className="flex flex-row items-center">
                         <div className="text-gray-600 mr-3">

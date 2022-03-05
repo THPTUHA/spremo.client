@@ -5,25 +5,25 @@ import $ from 'jquery'
 import { useNavigate} from 'react-router-dom';
 import { CSSTransition } from "react-transition-group";
 
-import SearchItem from "../../../components/navbar/SearchItem";
-import { Helper } from '../../../services/Helper';
+import SearchItem from "../../components/navbar/SearchItem";
+import { Helper } from '../../services/Helper';
 
 
-const ListFilter = ({ openFilter, closeFilter }: { openFilter: boolean, closeFilter: () => void }) => {
+const ListFilter = ({ openFilter, closeFilter ,url}: { openFilter: boolean, closeFilter: () => void ,url: string}) => {
     const {q, page } = Helper.getURLParams();
     const navigate = useNavigate();
     const setQuery = () => {
         var queries: string[] = [];
 
-        if ($("#search").val()) {
-            queries.push(`q=${$("#search").val()}`);
+        if ($(`#search${url}`).val()) {
+            queries.push(`q=${$(`#search${url}`).val()}`);
         }
 
         if (page) {
             queries.push(`page=${page}`);
         }
 
-        $("#search").val("");
+        $(`#search${url}`).val("");
         const {pathname } = window.location;
         navigate(`${pathname}?${queries.join('&')}`);
     }
@@ -49,9 +49,9 @@ const ListFilter = ({ openFilter, closeFilter }: { openFilter: boolean, closeFil
             <div className=" md:w-full w-64 px-3 py-2 right-5 bg-white fixed md:static rounded-lg shadow">
                 <div className="mb-2">
                     <label className="text-sm text-gray-500 font-semibold" htmlFor="">Từ khoá</label>
-                    <div className="flex items-center">
-                        <SearchItem/>
-                        <a className="px-3" onKeyDown={onSubmitHandle} onClick={onSubmitHandle}><span><FiSearch /></span></a>
+                    <div className="flex items-center w-1/2">
+                        <SearchItem url={url} size={120}/>
+                        <a onKeyDown={onSubmitHandle} onClick={onSubmitHandle} className="cursor-pointer"><span><FiSearch /></span></a>
                     </div>
                 </div>
                 <div className="flex flex-wrap">

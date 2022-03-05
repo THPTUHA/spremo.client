@@ -1,12 +1,20 @@
-import { USER_ACTION_METATYPE } from '../Constants';
+import { Search, USER_ACTION_METATYPE } from '../Constants';
 import { NextRouter } from 'next/router';
 
-import { RawUserActionLog, UploadImage } from '../store/types';
+import { RawPodcastChallenge, RawUser, RawUserActionLog, UploadImage } from '../store/types';
+import { RankRecord } from '../store/interface';
 // import { AppRouterContext } from "";
 
 type Param = {
     key: string,
     value: number | string
+}
+
+interface Tag{
+    id:number,
+    name:string
+    value: number,
+    type: string
 }
 export class Helper {
 
@@ -30,6 +38,44 @@ export class Helper {
 
     //     return numberString;
     // }
+    static getParamFromTag(tags: Tag[]){
+        const collections = [];
+        const source_keys = [];
+        const challenge_type = [];
+        const challenge_status = [];
+        let podcast_q = 0;
+        let challenge_q = 0;
+        for(const tag of tags){
+            switch(tag.type){
+                case "collection":
+                    collections.push(tag.value);
+                    break;
+                case "source_key":
+                    source_keys.push(tag.value);
+                    break;
+                case "challenge_type":
+                    challenge_type.push(tag.value);
+                    break;
+                case "challenge_status":
+                    challenge_status.push(tag.value);
+                    break;
+                case "challenge":
+                    challenge_q = 1;
+                    break;
+                case "podcast":
+                    podcast_q = 1;
+                    break;
+            }
+        }
+        return {
+            collection_ids: collections.join("_"),
+            source_keys: source_keys.join("_"),
+            challenge_type: challenge_type.join("_"),
+            challenge_status: challenge_status.join("_"),
+            podcast_q: podcast_q,
+            challenge_q: challenge_q
+        }
+    }
 
     static getQueryString(route: NextRouter){
         return  Object.keys(route.query).map(key => `${key}=${route.query[key]}`).join('&');
@@ -88,8 +134,14 @@ export class Helper {
         const days = Math.floor( value / 86400);
         const hours = Math.floor(value % 86400 /3600);
         const minutes = Math.floor(value % 3600 /60);
-        const seconds = Math.floor(value % 60);
-        return `${days} Ngày ${hours} Giờ ${minutes} Phút ${seconds} Giây`;
+        const seconds = Math.floor(value%60);
+        return (days || hours)? `${days} days ${hours} hours ${minutes} minutes`: `${hours} hours ${minutes} minutes ${seconds} seconds`;
+    }
+
+    static getTimeListen(value:number){
+        const hours = Math.floor(value/3600);
+        const minutes = Math.floor(value % 3600 /60);
+        return  hours+" hours " +minutes+" minus ";
     }
 
     static getHourMinute(value:number){
@@ -122,8 +174,10 @@ export class Helper {
         return Math.round(new Date(date).getTime() / 1000);
     }
 
-    static getDateInputFormat = function (value: number) {
-        var date = new Date(value * 1000);
+    static getDateInputFormat = function (value?: number) {
+        let date;
+        if(!value) date = new Date();
+        else  date = new Date(value * 1000);
         return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     }
 
@@ -291,5 +345,37 @@ export class Helper {
         }
 
         return "Welcome to WELE"
+    }
+
+    static mapPointToRank = (points: number[]) => {
+        const mapping = {} as { [key: number]: number };
+        for (let i = 0; i < points.length; ++i)
+            if (!mapping[points[i]])
+                mapping[points[i]] = i + 1;
+        return mapping;
+    }
+
+    static mapUserById = (users: RawUser[]) => {
+        const mapping = {} as { [key: number]: RawUser };
+        for (const user of users)
+            mapping[user.id] = user;
+        return mapping;
+    }
+
+    static mapPodcastChallengeByPodcastId = (podcast_challenges: RawPodcastChallenge[]) => {
+        const mapping = {} as { [key: number]: RawPodcastChallenge };
+        for (const podcast_challenge of podcast_challenges)
+            mapping[podcast_challenge.podcast_id] = podcast_challenge;
+        return mapping;
+    }
+
+    static getRankStatus = (rank: number, rank_record: RankRecord) => {
+        if (!rank_record.rank && rank == 1) {
+            return 0;
+        }
+        if (Helper.time() - rank_record.last_update > 60 * 60 * 6) {
+            return rank_record.rank - rank;
+        }
+        return (rank == rank_record.rank ? rank_record.status : rank_record.rank - rank);
     }
 };

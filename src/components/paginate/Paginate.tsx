@@ -9,11 +9,13 @@ import { Helper } from '../../services/Helper';
 
 interface Props {
     num_items: number,
-    page_size: number
+    page_size: number,
+    current_page?: number
 }
 
-const Pagination = React.memo(({ num_items, page_size }: Props) => {
+const Pagination = ({ num_items, page_size ,current_page}: Props) => {
     const page = Helper.getPageParam();
+    console.log(page);
     const real_current_page = useMemo(() => page ? Number(page) : 1, [page]);
 
     const pages = useMemo(() => {
@@ -170,6 +172,6 @@ const Pagination = React.memo(({ num_items, page_size }: Props) => {
             </Link></li>}
         </ul>
     )
-});
+}
 
 export default Pagination;

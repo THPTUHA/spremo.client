@@ -27,8 +27,9 @@ import { UserHook } from "../../../store/user/hooks";
 import { PodcastHook } from "../../../store/podcast/hooks";
 import { PodcastFunctions } from "../../../store/podcast/functions";
 import { useRef } from "react";
-import ListFilter from "../podcasts/_ListFilter";
+import ListFilter from "../../../page.components/filter/_ListFilter";
 import { useMediaQuery } from "react-responsive";
+import { BsClockHistory } from "react-icons/bs";
 
 type ResponseType = {
     challenges: RawChallenge[],
@@ -52,7 +53,7 @@ const SmallMenu = ({ challenge, reload }: { challenge: RawChallenge, reload: () 
         let result = await window.confirm("Are you sure to delete challenge " + challenge.name + "?");
         if (result) {
             try {
-                const res: any = await Fetch.postWithAccessToken<{ challenge: RawChallenge, code: number }>("/api/challenge/remove", {
+                const res: any = await Fetch.postWithAccessToken<{ challenge: RawChallenge, code: number }>("/api/challenges/remove", {
                     id: challenge.id
                 })
 
@@ -76,7 +77,7 @@ const SmallMenu = ({ challenge, reload }: { challenge: RawChallenge, reload: () 
 
     const onChangeStatus = async (status:number) => {
         try {
-            const res: any = await Fetch.postWithAccessToken<{ challenge: RawChallenge, code: number }>("/api/challenge/change.status", {
+            const res: any = await Fetch.postWithAccessToken<{ challenge: RawChallenge, code: number }>("/api/challenges/change.status", {
                 id: challenge.id,
                 status:status
             })
@@ -109,34 +110,39 @@ const SmallMenu = ({ challenge, reload }: { challenge: RawChallenge, reload: () 
                     <HiDotsVertical />
                 </span>
 
-                {open && <div className="top-full right-0 absolute ">
+                {open && <div className="top-full right-0 absolute -mt-2 z-30">
                     <div className="px-2 py-1 rounded-md shadow bg-white text-gray-600">
-                        <Link to={`/admin/challenge/edit/${challenge.id}`}>
+                        <Link to={`/admin/challenges/edit/${challenge.id}`}>
                             <a className=" flex items-center outline-none focus:outline-none  mb-1 hover:text-primary-dark transition-all">
                                 <span className="mr-1"><AiFillEdit /></span>
                                 <span>Edit</span>
                             </a>
 
                         </Link>
-                        <a onClick={(e) => { e.preventDefault(); onClickDelete() }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
-                            <span className="mr-1"><IoMdTrash /></span>
-                            <span>Delete</span>
-                        </a>
                         {
                             
-                            challenge.status == Constants.CHALLENGE.UNACTIVE?(
-                                <a onClick={(e) => { e.preventDefault(); onChangeStatus(Constants.CHALLENGE.ACTIVE) }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
-                                    <span className="mr-1"><VscRunAll/></span>
-                                    <span>Active</span>
-                                </a>
-                            ):challenge.status == Constants.CHALLENGE.ACTIVE?(
+                           challenge.status[0] == 'a'?(
+                            <>
                                 <a onClick={(e) => { e.preventDefault(); onChangeStatus(Constants.CHALLENGE.UNACTIVE) }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
                                     <span className="mr-1"><IoMdPause/></span>
                                     <span>Unactive</span>
                                 </a>
-                            ):""
+                                <a onClick={(e) => { e.preventDefault(); onChangeStatus(Constants.CHALLENGE.FINISHED) }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
+                                    <span className="mr-1"><BsClockHistory/></span>
+                                    <span>Finish</span>
+                                </a>
+                            </>
+                            ):(
+                                <a onClick={(e) => { e.preventDefault(); onChangeStatus(Constants.CHALLENGE.ACTIVE) }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
+                                <span className="mr-1"><VscRunAll/></span>
+                                <span>Active</span>
+                                </a>
+                            )
                         }
-                        
+                         <a onClick={(e) => { e.preventDefault(); onClickDelete() }} className="cursor-pointer flex items-center outline-none focus:outline-none mb-1 hover:text-primary-dark transition-all">
+                            <span className="mr-1"><IoMdTrash /></span>
+                            <span>Delete</span>
+                        </a>
                     </div>
                 </div>}
             </div>
@@ -146,7 +152,7 @@ const SmallMenu = ({ challenge, reload }: { challenge: RawChallenge, reload: () 
 }
 
 const Challenge=()=>{
-    const page_size = 3;
+    const page_size = 10;
     const podcasts = useRef(PodcastHook.useAll());
     const [openFilter, setOpenFilter] = useState(false);
     const [selected_challenge, setSelectedChallenge] = useState<RawChallenge>();
@@ -165,7 +171,7 @@ const Challenge=()=>{
         }
     });
     const state = useAsync(async () => {
-        const res = await Fetch.postWithAccessToken<ResponseType>('/api/challenge/list', {
+        const res = await Fetch.postWithAccessToken<ResponseType>('/api/challenges/list', {
             ...Helper.getURLParams(),
             page_size: page_size,
         });
@@ -198,7 +204,7 @@ const Challenge=()=>{
     return (
         <>
         <Meta title={`WELE | Challenge`} />
-            <Link to='/admin/challenge/create'>
+            <Link to='/admin/challenges/create'>
                 <a className="fixed bottom-14 right-14 cursor-pointer px-2 py-2 text-white flex items-center justify-center bg-primary hover:bg-primary-dark rounded-full shadow-md text-2xl ">
                     <span><FaPlus /> </span>
                 </a>
@@ -226,7 +232,8 @@ const Challenge=()=>{
                             </div>
                         )) : ((state.value?.challenges as RawChallenge[]).length > 0 ? (state.value?.challenges as RawChallenge[]).map((challenge, index) => {
                             return (
-                                <div key={challenge.id} className={challenge.status == Constants.CHALLENGE.ACTIVE?"bg-green-400 inline-block shadow hover:shadow-md  transition-all cursor-pointer rounded-md px-3 py-2 w-full mx-auto mb-2" :"inline-block shadow hover:shadow-md  transition-all cursor-pointer rounded-md px-3 py-2 w-full mx-auto mb-2"} >
+                                <div key={challenge.id} className={challenge.status[0] == 'a' ?"bg-green-400 inline-block shadow hover:shadow-md  transition-all cursor-pointer rounded-md px-3 py-2 w-full mx-auto mb-2" 
+                                :challenge.status[0] == 'f' ?"bg-red-400 inline-block shadow hover:shadow-md  transition-all cursor-pointer rounded-md px-3 py-2 w-full mx-auto mb-2":"inline-block shadow hover:shadow-md  transition-all cursor-pointer rounded-md px-3 py-2 w-full mx-auto mb-2"} >
                                 <div className="flex space-x-3 flex-col xs:flex-row">
                                     <div  onClick={() => setSelectedChallenge(challenge)} className=" w-full xs:w-36 h-24  flex-shrink-0 flex items-center justify-center">
                                         {challenge.background_image ? <div style={{ backgroundImage: `url(${Constants.IMAGE_URL + challenge.background_image})` }}
@@ -245,7 +252,7 @@ const Challenge=()=>{
                                                 <p className=" text-sm text-b-500 font-light line-clamp-2">{Helper.extractContentByRegex(challenge.description)}</p>
                                             </div>
                                         </div>
-                                        <div className="absolute  xs:block right-0 top-0">
+                                        <div className="absolute  xs:block right-0 top-0 ">
                                             <SmallMenu challenge={challenge} reload={() => setReload(uuid.v4())}/>
                                         </div>
                                     </div>
@@ -264,7 +271,7 @@ const Challenge=()=>{
                     }
                 </div>
                 <div className=" w-0 md:w-1/4">
-                    <ListFilter openFilter={openFilter || isMd} closeFilter={() => setOpenFilter(false)} />
+                    <ListFilter openFilter={openFilter || isMd} closeFilter={() => setOpenFilter(false)} url={"challenge"}/>
                 </div>
             </div>
 
@@ -316,7 +323,7 @@ const ChallengeItem  = ({challenge}:{challenge:RawChallenge})=>{
                 <p className="mr-2 text-primary font-semibold text-lg" >Type:</p>
                 {
                     team.status?(
-                        <div >
+                        <div className="mb-2">
                             <p className="ml-5 text-primary font-semibold text-lg">+Team</p>
                             <div className="flex">
                                 <label className="ml-6 text-sm font-medium text-primary-dark mb-1.5 block" htmlFor="">Number member:</label>
@@ -327,18 +334,18 @@ const ChallengeItem  = ({challenge}:{challenge:RawChallenge})=>{
                 }
                 {
                     limit_time.status?(
-                        <div>
+                        <div className="mb-2">
                             <p className="ml-5 text-primary font-semibold text-lg">+Limit Time</p>
                             <div className="flex">
                                 <label className="ml-6 text-sm font-medium text-primary-dark mb-1.5 block" htmlFor="">Time:</label>
-                                <div className="ml-2 text-sm font-medium text-dark mb-1.5 block">{round(challenge.challenge_type.limit_time.time/3600)} hour  {(challenge.challenge_type.limit_time.time-round(challenge.challenge_type.limit_time.time/3600)*3600)/60} minute</div>
+                                <div className="ml-2 text-sm font-medium text-dark mb-1.5 block">{round(challenge.challenge_type.limit_time.value/3600)} hour  {(challenge.challenge_type.limit_time.value-round(challenge.challenge_type.limit_time.value/3600)*3600)/60} minute</div>
                             </div>
                         </div>
-                    ):""
+                    ):<p className="ml-5 text-primary font-semibold text-lg mb-2">+UnLimit Time</p>
                 }
                 {
                     limit_podcast.status?(
-                        <div className="mt-2">
+                        <div className="mb-2">
                             <p className="ml-5 text-primary font-semibold text-lg">+Limit Podcast</p>
                             {
                                 limit_podcast.podcasts.map((e,index)=>{
@@ -346,7 +353,7 @@ const ChallengeItem  = ({challenge}:{challenge:RawChallenge})=>{
                                 })
                             }
                         </div>
-                    ):""
+                    ):<p className="ml-5 text-primary font-semibold text-lg mb-2">+Limit Podcast</p>
                 }
             </div>
             <div className="mt-2 flex flex-wrap">
@@ -369,3 +376,5 @@ const ChallengeItem  = ({challenge}:{challenge:RawChallenge})=>{
 }
 Challenge.layout=LAYOUT_TYPES.Admin;
 export default Challenge;
+
+// [The Five Love Languages - Ngôn ngữ tình yêu] Hello cả nhà, nhận thấy rất nhiều members đang đến độ tuổi xây dựng tổ ấm cho riêng mình, và việc hiểu được Love Language của partner (vợ/chồng của mình) là vô cùng quan trọng, admin Tien Nguyen đã tạo một series 6 bài nghe trên Spotlight về cuốn sách của Gary Chapman. Cả nhà cùng lắng nghe và học hỏi để hiểu hơn về cách khiến người yêu/bạn đời của mình hạnh phúc nhé. Bạn nào hoàn thành được challenge sẽ được chương trình gửi quyển sách ebook nha.

@@ -1,0 +1,160 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { Op } from 'sequelize';
+import {  Constants } from '../../../Constants';
+import { ChallengeModel } from '../../../models/challenges/challenge';
+import { PodcastChallengeModel } from '../../../models/podcast.challenge/podcast.challenge';
+import { PodCastSubmitModel } from '../../../models/podcast.submit/postcast.submit';
+import { PodCastModel } from '../../../models/podcasts/podcast';
+import { RecordChallengeUserModel } from '../../../models/record.challenge.user/record.challenge.user';
+import { UserModel } from '../../../models/user/user';
+import BaseError from '../../../packages/error/error';
+import {  time, wrapAsync } from '../../../utils/helper';
+
+export default (app: Router) => {
+    const route = Router();
+    app.use('/search', route);
+
+    route.post("/", multer({}).fields([]),
+        wrapAsync(async (req, res) => {
+            const user = await UserModel.getFromReq(req);
+            var { q , challenge_type,podcast_q, challenge_q, challenge_status,collection_ids,source_keys , page } = req.body;
+
+            const page_size = 4;
+            const query_podcast :any = {};
+            const query_challenge :any = {};
+            let orders = [['id', 'DESC']];
+            let podcasts = [];
+            let challenges = [];
+            let podcast_submits = [];
+            let records = [];
+            let podcast_num = 0;
+            let challenge_num = 0;
+
+            page = (page && parseInt(page))?  parseInt(page) : 1;
+            challenge_type = challenge_type ? challenge_type.split("_") : [];
+            challenge_status = challenge_status ? challenge_status.split("_") : [];
+            collection_ids = collection_ids ? collection_ids.split("_") : [];
+            source_keys = source_keys ? source_keys.split("_") : [];
+
+            if (collection_ids.length > 0) {
+                podcast_q = true;
+                query_podcast.collections = {
+                    [Op.or]: collection_ids.map(e => {
+                        return {
+                            [Op.like]: `%@${e}@%`
+                        };
+                    })
+                };
+            }
+
+            if (source_keys.length > 0) {
+                podcast_q = true;
+                query_podcast.source_key = {
+                    [Op.or]: source_keys.map(e => {
+                        return {
+                            [Op.eq]: e
+                        };
+                    })
+                };
+            }
+
+            if(challenge_type.length){
+                challenge_q = true;
+                query_challenge.type_keys = {
+                    [Op.or]: challenge_type.map(type => {
+                        return {[Op.like] : `%#${type}#%`  }
+                    })
+                };
+            }
+           
+            if(challenge_status.length){
+                challenge_q = true;
+                query_challenge.status = {
+                    [Op.or]: challenge_status.map(status => {
+                        const q = parseInt(status);
+                        if(q){
+                            if(q == Constants.CHALLENGE.UNACTIVE){
+                                if(user && user.isAdmin())
+                                    return {[Op.like] : `${ChallengeModel.UNACTIVE}%`}
+                            }else if(q== Constants.CHALLENGE.ACTIVE){
+                                return {[Op.like] : `${ChallengeModel.ACTIVE}%`}
+                            }else if(q== Constants.CHALLENGE.DURING){
+                                return {[Op.like] : `${ChallengeModel.DURING}%`}
+                            } else if(q== Constants.CHALLENGE.FINISHED){
+                                return {[Op.like] : `${ChallengeModel.FINISHED}%`}
+                            } 
+                        }
+                    })
+                };
+            }
+            
+            if(q){
+                query_podcast[Op.or] = {
+                    name: {
+                        [Op.like]: `%${q}%`
+                    },
+                    sub_name: {
+                        [Op.like]: `%${q}%`
+                    }
+                };
+
+                query_challenge.name = {
+                    [Op.like]: `%${q}%`
+                };
+            }
+
+            if(podcast_q){
+                podcasts = await PodCastModel.paginate({
+                    where: query_podcast,
+                    order: orders
+                }, { page: page, page_size: page_size });
+
+                podcast_num = await PodCastModel.count({
+                    where: query_podcast
+                })
+            }
+          
+            if(challenge_q){
+                challenges = await ChallengeModel.paginate({
+                    where: query_challenge,
+                    order: orders
+                }, { page: page, page_size: page_size });
+
+                challenge_num = await ChallengeModel.count({
+                    where: query_challenge
+                })
+            }
+
+
+            if(user){
+                if(podcasts.length){
+                    podcast_submits = await PodCastSubmitModel.findAll({
+                        where: {
+                            podcast_id: podcasts.map(e => e.id),
+                            user_id: user.id
+                        }
+                    });
+                }
+                if(challenges.length){
+                    records = await RecordChallengeUserModel.findAll({
+                        where:{
+                            hash_key: challenges.map(challenge => RecordChallengeUserModel.hashKey(challenge.id,user.id))
+                        }
+                    })
+                }
+            }
+            return res.status(200).send({
+                podcasts: podcasts.map(e=>e.export()),
+                challenges: challenges.map(e=>e.release()),
+                podcast_submits: podcast_submits.map(e=>e.export()),
+                records: records.map(e => e.release()),
+                podcast_num: podcast_num,
+                challenge_num: challenge_num,
+                code: BaseError.Code.SUCCESS
+            });
+
+
+    }))
+}
+

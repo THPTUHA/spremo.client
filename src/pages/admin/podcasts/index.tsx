@@ -9,7 +9,7 @@ import { useAsync } from 'react-use';
 
 import Paginate from '../../../components/paginate/Paginate';
 
-import ListFilter from './_ListFilter';
+import ListFilter from '../../../page.components/filter/_ListFilter';
 import { Helper } from "../../../services/Helper";
 import { HiDotsVertical } from "react-icons/hi";
 import { AiFillEdit } from "react-icons/ai";
@@ -207,7 +207,7 @@ const List = () => {
                     }
                 </div>
                 <div className=" w-0 md:w-1/4">
-                    <ListFilter openFilter={openFilter || isMd} closeFilter={() => setOpenFilter(false)} />
+                    <ListFilter openFilter={openFilter || isMd} closeFilter={() => setOpenFilter(false)} url={"podcast"}/>
                 </div>
             </div>
 

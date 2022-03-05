@@ -13,36 +13,23 @@ import { Toast } from '../../../../services/Toast';
 
 interface Props {
     podcast: RawPodcast,
-    podcast_submit: RawPodcastSubmit
-}
-
-interface Response {
-    podcast: RawPodcast,
     podcast_submit: RawPodcastSubmit,
-    user_record: RawPodcastChallenge,
     code: number,
-    metatype:{
-        id:number,
-        challenge_id: number,
-        challenge_name: string
-    }
-    message:string 
+    message: string
 }
 
 const ListenResult = () => {
     const {id} = useParams();
-    const [response, setResponse] = useState<Response>();
+    const [response, setResponse] = useState<Props>();
 
     useEffect(()=>{
         (async()=>{
            try {
                 console.log(id);
                 const ids = id?.split("_");
-                let url = '/api/podcast.submit/detail';
-                if(ids && ids[1]) url ='/api/record.challenge.user/podcast.result';
-                const res = await Fetch.postWithAccessToken<Response>(url, {
-                   id:ids && ids[0]?ids[0]:"",
-                   challenge_id: ids && ids[1]?ids[1]:""
+                const res = await Fetch.postWithAccessToken<Props>('/api/podcast.submit/detail', {
+                   id:ids && ids[0]?ids[0]:0,
+                   challenge_id: ids && ids[1]?ids[1]:0
                 });
                 console.log(res.data);
                 if(res.data && res.data.code == Code.SUCCESS){
@@ -58,6 +45,7 @@ const ListenResult = () => {
 
         })();
     },[]);
+    
     return (<>
         {
             response && (
@@ -65,7 +53,7 @@ const ListenResult = () => {
                     <Meta title={`WELE | Result ${response.podcast.name}`} />
                     <div className="w-full pt-16">
                         <Breadcrumb podcast={response.podcast}/>
-                        <Result {...response} />
+                        <Result podcast={response.podcast} podcast_submit={response.podcast_submit} />
                     </div>
                 </div>
             )

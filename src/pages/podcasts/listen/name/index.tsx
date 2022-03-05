@@ -1,7 +1,7 @@
 import { FaChevronRight, FaHeadphonesAlt, FaChevronLeft, FaPlay } from 'react-icons/fa'
 import { IoPause, IoRepeat } from 'react-icons/io5'
 import { FiBookmark } from 'react-icons/fi'
-// import { List, arrayMove } from 'react-movable';
+import { List, arrayMove } from 'react-movable';
 import Breadcrumb from '../../../../components/ui/Breadcrumb';
 import $ from 'jquery';
 import {  useEffect, useState } from 'react';
@@ -20,9 +20,10 @@ import { useRef } from 'react';
 import Meta from '../../../../components/ui/Meta';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GetServerSideProps } from "next";
-// import LogEvent from 'packages/firebase/LogEvent';
+import LogEvent from '../../../../packages/firebase/LogEvent';
 import { BadgeFunctions } from '../../../../store/badge/functions';
 import { CongratFunctions } from '../../../../store/congrat/functions';
+import { ChallengeHook } from "../../../../store/challenge/hooks";
 
 const confirm = async (content: string, title: string) => {
     return await (await import('react-st-modal')).Confirm(content, title);
@@ -51,17 +52,17 @@ const formats = [
     'list', 'bullet', 'indent'
 ];
 const RATE_SETTINGS = [0.5, 0.7, 1, 1.2, 1.5, 1.8, 2];
-const auto_save_delay = 60;
+const auto_save_delay = 30;
 
 // GENERATE HINT
 const getContentArray = (submit: RawPodcastSubmit) => {
-    const ans= submit.podcast_hints?submit.podcast_hints.map((e, index) => {
+    return submit.podcast_hints.map((e, index) => {
         if (submit.draft_array[index]) {
             return submit.draft_array[index];
         }
+
         return FILLER_TEXT;
-    }):[];
-    return ans;
+    })
 };
 
 const getContent = (submit: RawPodcastSubmit, content_array: string[]) => {
@@ -75,16 +76,9 @@ const getContent = (submit: RawPodcastSubmit, content_array: string[]) => {
     }).join(" ");
 };
 
-type Metatype = {
-    id?:string,
-    challenge_name?:string,
-    challenge_id?:number,
-
-}
 
 const Listen = () => {
     const {id,name} =useParams();
-    const url = useRef("");
     const [on_loading_submit, setOnLoadingSubmit] = useState(false);
     const [on_loading_change_hint, setOnLoadingChangeHint] = useState(false);
     const [on_loading_test_result, setOnLoadingTestResult] = useState(false);
@@ -101,21 +95,20 @@ const Listen = () => {
     const [play_rate, setPlayRate] = useState(1);
     const [amount_time_adjust, setAmountTimeAdjust] = useState(5);
     const [is_looping, setLooping] = useState(true);
-    const [metatype, setMetatype] = useState<Metatype>();
     const [settings, setSettings] = useState(["1", "2", "3"]);
 
     const [podcast_submit,setPodcastSubmit]  =useState<RawPodcastSubmit>();
     const [podcast, setPodcast] = useState<RawPodcast>();
+    const pre_time = useRef(0);
+    const total_time_listen = useRef(0);
 
+    const challenges = ChallengeHook.useFetchChallengeByPodcastID(podcast?podcast.id:-1);
     const navigate = useNavigate();
     useEffect(()=>{
         (async()=>{
            try {
-                const ids = id?.split("_");
-                url.current = (ids && ids[1])?'/api/record.challenge.user/podcast.submit.': '/api/podcast.submit/';
-                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, podcast: RawPodcast, metatype:Metatype, code: number }>(`${url.current}detail`, {
-                    id : ids?ids[0]:"",
-                    challenge_id : ids?  ids[1]:"",
+                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, podcast: RawPodcast, code: number }>('/api/podcast.submit/detail', {
+                    id : id,
                 });
                 console.log(res.data);
                 if(res.data && res.data.code == Code.SUCCESS){
@@ -124,7 +117,6 @@ const Listen = () => {
                     setContentArray(getContentArray(podcast_submit));
                     setContent(podcast_submit.draft);
                     setPodcast(res.data.podcast);
-                    setMetatype(res.data.metatype);
                 }
            } catch (error) {
                console.log(error);
@@ -138,17 +130,17 @@ const Listen = () => {
 
     const __init = useAsync(async () => {
        if(podcast){
-            var audio = new Audio(Constants.IMAGE_URL + podcast.file_path);
-            setAudio(audio);
-            var settings = await localStorage.getItem('listen_settings');
-            if (settings) {
-                setSettings(JSON.parse(settings));
-            }
+        var audio = new Audio(Constants.IMAGE_URL + podcast.file_path);
+        setAudio(audio);
+        var settings = await localStorage.getItem('listen_settings');
+        if (settings) {
+            setSettings(JSON.parse(settings));
+        }
 
-            var time_adjust = await localStorage.getItem('time_adjust');
-            if (time_adjust) {
-                setAmountTimeAdjust(parseInt(time_adjust));
-            }
+        var time_adjust = await localStorage.getItem('time_adjust');
+        if (time_adjust) {
+            setAmountTimeAdjust(parseInt(time_adjust));
+        }
        }
     }, [podcast]);
 
@@ -174,7 +166,7 @@ const Listen = () => {
 
 
     const onChangeSetting = async (e: any) => {
-        // LogEvent.sendEvent("listen.change_listen_settings");
+        LogEvent.sendEvent("listen.change_listen_settings");
         var new_settings = [...settings];
         new_settings[parseInt(e.target.name.replace('index_', ''))] = e.target.value;
         setSettings(new_settings);
@@ -182,13 +174,13 @@ const Listen = () => {
     };
 
     const onChangeAdjustTime = async (e: any) => {
-        // LogEvent.sendEvent("listen.change_time_adjust");
+        LogEvent.sendEvent("listen.change_time_adjust");
         localStorage.setItem('time_adjust', parseInt(e.target.value).toString());
         setAmountTimeAdjust(parseInt(e.target.value));
     };
 
     const onSetPlayRate = (value: number) => {
-        // LogEvent.sendEvent("listen.play_rate_" + value);
+        LogEvent.sendEvent("listen.play_rate_" + value);
         if (audio) {
             audio.playbackRate = value
             setPlayRate(value);
@@ -196,11 +188,11 @@ const Listen = () => {
     }
 
     const togglePlay = (from_key: boolean = false) => {
-        // if (!from_key) {
-        //     LogEvent.sendEvent("listen.toggle_play_button");
-        // } else {
-        //     LogEvent.sendEvent("listen.toggle_play_key");
-        // }
+        if (!from_key) {
+            LogEvent.sendEvent("listen.toggle_play_button");
+        } else {
+            LogEvent.sendEvent("listen.toggle_play_key");
+        }
 
         if (audio) {
             if (!playing) {
@@ -214,27 +206,27 @@ const Listen = () => {
     };
 
     const goPrevXSeconds = (from_key: boolean) => {
-        // if (!from_key) {
-        //     LogEvent.sendEvent("listen.go_prev_button");
-        // } else {
-        //     LogEvent.sendEvent("listen.go_prev_key");
-        // }
+        if (!from_key) {
+            LogEvent.sendEvent("listen.go_prev_button");
+        } else {
+            LogEvent.sendEvent("listen.go_prev_key");
+        }
         changeCurrentTime(Math.max(0, time_listen - amount_time_adjust));
     };
 
 
     const goNextXSeconds = (from_key: boolean = false) => {
-        // if (!from_key) {
-        //     LogEvent.sendEvent("listen.go_next_button");
-        // } else {
-        //     LogEvent.sendEvent("listen.go_next_key");
-        // }
+        if (!from_key) {
+            LogEvent.sendEvent("listen.go_next_button");
+        } else {
+            LogEvent.sendEvent("listen.go_next_key");
+        }
 
         changeCurrentTime(time_listen + amount_time_adjust);
     };
 
     const onChangeHandle = (e: any) => {
-        // LogEvent.sendEvent("listen.change_time_using_handle");
+        LogEvent.sendEvent("listen.change_time_using_handle");
         changeCurrentTime(e.target.value)
     };
 
@@ -253,37 +245,32 @@ const Listen = () => {
     };
 
     const onChangeHint = async () => {
-        // LogEvent.sendEvent("listen.change_to_hint");
-        
+        LogEvent.sendEvent("listen.change_to_hint");
         var result = await confirm(`Change to hint , you will lose your current writing`, 'Change to hint!');
         if (!result) {
             return;
         }
 
         try {
-            if (podcast) {
-                const ids = id?.split("_");
-                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, code: number ,message: string}>(`${url.current}get`, {
+            if (podcast && podcast_submit) {
+                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, code: number }>('/api/podcast.submit/get', {
                     id: podcast.id,
                     metatype: 'hint',
-                    challenge_id : ids ? ids[1]: "",
                 });
-                console.log(url.current);
+
                 console.log(res.data);
                 if (res.status == 200) {
                     if (res.data && res.data.code == Code.SUCCESS) {
-                        const podcast_submit = res.data.podcast_submit;
-                        setContentArray(getContentArray(podcast_submit));
-                        setContent(podcast_submit.draft);
-                        setPodcastSubmit(podcast_submit);
+
                         Toast.success("Start Listening!");
-                    }else{
-                        Toast.error(res.data.message);
+                        setPodcastSubmit({...podcast_submit,metatype : "hint"});
+                        // const {origin} =  window.location;
+                        // navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}`);
                     }
                 }
             }
         }
-        catch(err) {
+        catch (err){
             console.log(err);
             Toast.error("Some errors occurred!")
         }
@@ -292,8 +279,7 @@ const Listen = () => {
     };
 
     const onSubmit = async () => {
-        // LogEvent.sendEvent("listen.submit");
-        const ids = id?.split("_");
+        LogEvent.sendEvent("listen.submit");
         if (!is_started) {
             await confirm(`Let's play audio file`, 'Start listening!');
             return;
@@ -305,51 +291,42 @@ const Listen = () => {
             return;
         }
 
-        if (podcast_submit && podcast) {
-            setOnLoadingSubmit(true);
+        if (action_log.value) {
+            if(podcast_submit && podcast){
+                setOnLoadingSubmit(true);
             try {
-                let res;
-                if(metatype ){
-                    console.log("???");
-                    res = await Fetch.postWithAccessToken<{ code: number, message: string, podcast_submit: RawPodcastSubmit }>('/api/record.challenge.user/podcast.submit.submit', {
-                        id: metatype.id,
-                        podcast_id: podcast.id,
-                        content: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
-                        content_array: JSON.stringify(content_array),
-                    });
-                }else if(action_log.value){
-                    res = await Fetch.postWithAccessToken<{ code: number, message: string, podcast_submit: RawPodcastSubmit }>('/api/podcast.submit/submit', {
-                        id: podcast_submit.id,
-                        content: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
-                        content_array: JSON.stringify(content_array),
-                        action_log_id: action_log.value.user_action_log.id
-                    });
-    
-                    // end action log
-                    // if (!action_log.value) {
-                    //     console.log("End action log error: action haven't started yet");
-                    //     return;
-                    // }
+                const res = await Fetch.postWithAccessToken<{ code: number, message: string, podcast_submit: RawPodcastSubmit }>('/api/podcast.submit/submit', {
+                    id: podcast_submit.id,
+                    content: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
+                    content_array: JSON.stringify(content_array),
+                    action_log_id: action_log.value.user_action_log.id
+                });
+
+                // end action log
+                if (!action_log.value) {
+                    console.log("End action log error: action haven't started yet");
+                    return;
                 }
-                console.log(res);
+
                 setOnLoadingSubmit(false)
-                if (res && res.status == 200) {
+                if (res.status == 200) {
                     if (res.data && res.data.code == Code.SUCCESS) {
                         CongratFunctions.load('Bạn đã nộp bài thành công');
                         BadgeFunctions.onSubmitted();
-                        const {origin} = window.location;
+
                         setTimeout(() => {
-                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}_${ids&&ids[1]?ids[1]:""}/result`);
+                            const {origin} =  window.location;
+                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}/result`)
                         }, 1000);
 
                         return;
                     }
-                    console.log(res.data);
                     Toast.error(res.data.message);
                     return
                 }
             } catch (err) {
                 console.log('error', err)
+            }
             }
         }
 
@@ -359,32 +336,22 @@ const Listen = () => {
     }
 
     const onSaveProgress = async () => {
-        // LogEvent.sendEvent("listen.save_progress");
-        if (!is_started) {
-            await confirm(`Let's play audio file`, 'Start listening!');
-            return;
-        }
+        if(podcast && podcast_submit){
+            LogEvent.sendEvent("listen.save_progress");
+            if (!is_started) {
+                await confirm(`Let's play audio file`, 'Start listening!');
+                return;
+            }
 
-        setOnLoadingSaveProgress(true)
-       if(podcast_submit && podcast){
-        try {
-            let res;
-            if(metatype){
-                res = await Fetch.postWithAccessToken<{ code: number, message: string }>('/api/record.challenge.user/podcast.submit.update', {
-                    id: metatype.id,
-                    podcast_id: podcast.id,
-                    current_time_listen: time_listen,
-                    draft: content,
-                    content_array: JSON.stringify(content_array),
-                });
-            }else{
-                res = await Fetch.postWithAccessToken<{ code: number, message: string }>('/api/podcast.submit/update', {
+            setOnLoadingSaveProgress(true)
+            try {
+                const res = await Fetch.postWithAccessToken<{ code: number, message: string }>('/api/podcast.submit/update', {
                     id: podcast_submit.id,
-                    current_time_listen: time_listen,
-                    draft: content,
                     content_array: JSON.stringify(content_array),
+                    current_time_listen: time_listen,
+                    draft: content
                 });
-    
+
                 // update action log
                 if (!action_log.value) {
                     console.log("End action log error: action haven't started yet");
@@ -394,38 +361,35 @@ const Listen = () => {
                     id: action_log.value.user_action_log.id,
                     podcast_id: podcast.id,
                 });
+
+                setOnLoadingSaveProgress(false)
+                if (res.status == 200) {
+                    if (res.data && res.data.code == Code.SUCCESS) {
+                        Toast.success("Saved Process!");
+                        return;
+                    }
+                    Toast.error(res.data.message);
+                    return
+                }
+            } catch {
+
             }
 
             setOnLoadingSaveProgress(false)
-            if (res && res.status == 200) {
-                if (res.data && res.data.code == Code.SUCCESS) {
-                    Toast.success("Saved Process!");
-                    return;
-                }
-                Toast.error(res.data.message);
-                return
+            Toast.error("Some errors occurred");
             }
-        } catch {
-
-        }
-
-       }
-        setOnLoadingSaveProgress(false)
-        Toast.error("Some errors occurred");
     }
 
     const onTestResult = async () => {
-        // LogEvent.sendEvent("listen.test_result");
-       if(podcast_submit){
-        setOnLoadingTestResult(true);
-        var result = await Fetch.postWithAccessToken<{ percent: number }>('/api/podcast.submit/compare', {
-            result_text: podcast_submit.podcast_result,
-            user_text: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
-        });
-        setOnLoadingTestResult(false);
-        console.log(result.data);
-        await confirm(`Your result is ${(Number(result.data.percent) * 100).toFixed(2)}% now`, 'Start listening!');
-       }
+        if(podcast_submit){
+            LogEvent.sendEvent("listen.test_result");
+            var result = await Fetch.postWithAccessToken<{ percent: number }>('/api/podcast.submit/compare', {
+                result_text: podcast_submit.podcast_result,
+                user_text: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
+            });
+
+            await confirm(`Your result is ${(Number(result.data.percent) * 100).toFixed(2)}% now`, 'Start listening!');
+        }
     };
 
     useEffect(() => {
@@ -487,9 +451,6 @@ const Listen = () => {
         }
     }, [audio])
 
-    useEffect(() => {
-        if (playing) setStarted(true);
-    }, [playing])
 
     useEffect(() => {
         let counter = auto_saved;
@@ -501,69 +462,101 @@ const Listen = () => {
         }, auto_save_delay * 1000);
         return () => {
             clearInterval(interval);
+            
         }
     }, [])
 
     useEffect(() => {
-        if (content == "") return;
-        if (!is_started) return;
-        if(podcast_submit&&podcast){
-            // console.log(content_array);
-            try {
-                if(metatype){
-                   console.log(getContent(podcast_submit, content_array));
-                    Fetch.postWithAccessToken<{ code: number, message: string }>('/api/record.challenge.user/podcast.submit.update', {
-                        id: metatype.id,
-                        podcast_id: podcast.id,
-                        current_time_listen: time_listen,
-                        content_array: JSON.stringify(content_array),
-                        draft: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
-                        
-                    });
-               }else{
-                    // update action log
-                    if (!action_log.value) {
-                        console.log("Update action log error: action haven't started yet");
-                        return;
+        if(podcast && podcast_submit){
+            if (!is_started) return;
+            console.log("Challenge",challenges);
+            if(challenges && challenges.length){
+                try {
+                    let time = total_time_listen.current;
+                    if(playing){
+                        const current = Helper.time();
+                        time += current - pre_time.current;
+                        pre_time.current = current;
                     }
-        
-                    Fetch.postWithAccessToken('/api/user.action.log/update', {
-                        id: action_log.value.user_action_log.id,
-                        podcast_id: podcast.id,
+                    total_time_listen.current = 0;
+                    console.log(time);
+                   const res = Fetch.postWithAccessToken<{ code: number, message: string }>('/api/record.challenge.user/podcast.time.listen', {
+                        podcast_id: id,
+                        time_listen: time,
                     });
-               }
-            }
-            catch {
-    
-            }
-        }
-        return;
-    }, [auto_saved])
-
-    const action_log = useAsync(async () => {
-        if (is_started&&podcast&&!metatype) {
-            const res = await Fetch.postWithAccessToken<{ user_action_log: RawUserActionLog, code: number }>('/api/user.action.log/get-or-create', {
-                id: -1,
-                podcast_id: podcast.id
-            });
-
-            if (res.status == 200) {
-                if (res.data && res.data.code === Code.SUCCESS) {
-                    return {
-                        user_action_log: res.data.user_action_log,
-                    }
+                    console.log("Time Listen",res);
+                } catch(err){
+                    console.log(err);
                 }
             }
-            return null;
+            if (content == "") return;
+            try {
+                Fetch.postWithAccessToken<{ code: number, message: string }>('/api/podcast.submit/update', {
+                    id: podcast_submit.id,
+                    current_time_listen: time_listen,
+                    content_array: JSON.stringify(content_array),
+                    draft: podcast_submit.metatype == 'hint' ? getContent(podcast_submit, content_array) : content,
+                    
+                });
+
+                // update action log
+                if (!action_log.value) {
+                    console.log("Update action log error: action haven't started yet");
+                    return;
+                }
+
+                Fetch.postWithAccessToken('/api/user.action.log/update', {
+                    id: action_log.value.user_action_log.id,
+                    podcast_id: podcast.id,
+                });
+                
+            }
+            catch {
+
+            }
+            return;
+        }
+    }, [auto_saved,podcast,podcast_submit])
+
+
+    useEffect(() => {
+        if(podcast && podcast_submit){
+            if(!playing){
+                total_time_listen.current += Helper.time() - pre_time.current;
+            }else{
+                pre_time.current = Helper.time();
+                setStarted(true);
+            }
+            console.log(total_time_listen.current);
+        }
+    }, [playing])
+
+    const action_log = useAsync(async () => {
+        if(podcast){
+            if (is_started) {
+                const res = await Fetch.postWithAccessToken<{ user_action_log: RawUserActionLog, code: number }>('/api/user.action.log/get-or-create', {
+                    id: -1,
+                    podcast_id: podcast.id
+                });
+                console.log(res.data);
+                if (res.status == 200) {
+                    if (res.data && res.data.code === Code.SUCCESS) {
+                        return {
+                            user_action_log: res.data.user_action_log,
+                        }
+                    }
+                }
+                return null;
+            }
         }
     }, [is_started]);
 
 
     return (
         <>
-        {podcast&&podcast_submit?(
-            <>
-            <Meta url={`${Constants.DOMAIN}/podcasts/detail/${Helper.generateCode(podcast.name + "_" + podcast.sub_name)}/${podcast.id}`}
+        {podcast &&podcast_submit  ? 
+        <>
+        <Meta url={`${Constants.DOMAIN}/podcasts/detail/${Helper.generateCode(podcast.name + "_" + podcast.sub_name)}/${podcast.id}`}
                 description={podcast.description.slice(0, 200)}
                 title={`${podcast.name} ${podcast.sub_name}`}
                 image={`${Constants.IMAGE_URL + podcast.image_url}`}
@@ -604,7 +597,7 @@ const Listen = () => {
                             <a
                                 onClick={onTestResult}
                                 className=" cursor-pointer flex items-center justify-center mr-5 text-sm font-medium bg-primary w-40 text-white py-1.5 rounded-full hover:bg-primary-dark transition-all">
-                                {on_loading_test_result && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
+                                {on_loading_save_progress && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
                                 <span>TEST RESULT</span>
                             </a>
                             <a
@@ -631,7 +624,7 @@ const Listen = () => {
                             </div>
 
                             <div
-                                className="flex w-full mt-5 semi-md:rounded-lg overflow-hidden bg-white bg-cover bg-center shadow-md bottom-0 z-2 fixed">
+                                className="flex w-full mt-5 semi-md:rounded-lg overflow-hidden bg-white bg-cover bg-center shadow-md bottom-0 z-20 fixed">
                                 <div className=" bg-gray-100 semi-md:bg-white pt-2 pb-2 px-4 w-full semi-md:w-auto" ref={mp3Ref}>
 
                                     {audio && (<>
@@ -687,7 +680,7 @@ const Listen = () => {
                                         <div className="mb-2">
                                             <label htmlFor="adjust-time" className="block bg-gray-400 text-white text-center font-medium px-3 py-1 rounded cursor-pointer">adjust</label>
                                         </div>
-                                        {/* <List
+                                        <List
                                             values={settings}
                                             onChange={({ oldIndex, newIndex, }) => {
                                                 setSettings(arrayMove(settings, oldIndex, newIndex))
@@ -704,7 +697,7 @@ const Listen = () => {
                                                         <input name={`index_${index}`} type="text" maxLength={1} className="text-center outline-none focus:outline-none w-10" value={settings[index ? index : 0]} onChange={onChangeSetting} />
                                                     </div>
                                                 </div>
-                                            )} /> */}
+                                            )} />
                                     </div>
                                     <div className="flex-1 ml-3">
                                         <div className="mb-2">
@@ -728,7 +721,7 @@ const Listen = () => {
                     </div>
                 </div>
             </div>
-            </>):""}
+            </>:""}
         </>
     )
 }

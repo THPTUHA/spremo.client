@@ -7,7 +7,7 @@ import UserReducer from  './user/slice';
 import PodcastReducer from './podcast/slice';
 import BadgeReducer from  './badge/slice';
 import CongratReducer from './congrat/slice';
-
+import ChallengeReducer from './challenge/slice';
 
 const appReducer = combineReducers({
     me: MeReducer,
@@ -16,7 +16,8 @@ const appReducer = combineReducers({
     user: UserReducer,
     podcast:PodcastReducer,
     badge: BadgeReducer,
-    congrat: CongratReducer
+    congrat: CongratReducer,
+    challenge: ChallengeReducer
 });
 
 

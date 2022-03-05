@@ -17,9 +17,10 @@ import { MeHook } from "../../../../store/me/hooks";
 import Meta from "../../../../components/ui/Meta";
 import { FacebookShareButton } from "react-share";
 import { FiShare2 } from "react-icons/fi";
-// import LogEvent from "packages/firebase/LogEvent";
+import LogEvent from "../../../../packages/firebase/LogEvent";
 import HomeFooter from "../../../../components/footer/HomeFooter";
 import { useParams, useNavigate } from "react-router-dom";
+import { ChallengeHook } from "../../../../store/challenge/hooks";
 
 type RecordPodcast = {
     is_listening: boolean,
@@ -29,16 +30,8 @@ type RecordPodcast = {
     challenge_id?:number,
 }
 
-const isPodcastInChallenge = (record_podcast:RecordPodcast[])=>{
-	for(const {start_time} of record_podcast){
-		if(start_time && start_time <= Helper.time())return true;
-	}
-	return false;
-}
-
 const Detail = () => {
     const {name,id} = useParams();
-    const [url,setUrl] = useState<string>("");
     const [podcast, setPodcast] = useState<RawPodcast>();
     const [is_listening,setIsListening] = useState<boolean>(false);
     const [is_submitted,setIsSubmitted] = useState<boolean>(false);
@@ -46,7 +39,8 @@ const Detail = () => {
     const [on_loading_listen_hint, setOnLoadingListenHint] = useState(false);
     const [record_podcasts,setRecordPodcasts] =useState<RecordPodcast[]>([]);
     const me = MeHook.useMe();
-
+    const challenges = ChallengeHook.useFetchChallengeByPodcastID(podcast?podcast.id:-1);
+    // console.log(challenges);
     useEffect(()=>{
         if(me){
             (async()=>{
@@ -56,7 +50,6 @@ const Detail = () => {
                     });
                     const {podcast , is_listening, is_submitted, record_podcasts} = res.data;
                     console.log(res.data);
-                    setUrl(record_podcasts?'/api/record.challenge.user/podcast.submit.get':'/api/podcast.submit/get');
                     setPodcast(podcast);
                     setIsListening(is_listening);
                     setIsSubmitted(is_submitted);
@@ -70,7 +63,7 @@ const Detail = () => {
         }
     },[me]);
     const navigate = useNavigate();
-    const clickListen = async (type?: string,is_listening?:boolean, is_submitted?:boolean,challenge_id?:number) => {
+    const clickListen = async (type?: string) => {
         if (type == "normal") {
             setOnLoadingListen(true);
         }
@@ -79,27 +72,29 @@ const Detail = () => {
         }
 
         if (!me) {
-            Toast.error("You have to log in first!");
-            navigate("/authentication/login");
+            Toast.error("You have to log in first!")
+            navigate("/authentication/login")
             return;
         }
+
         let result = false;
 
         if (is_listening) {
             result = true;
         }
+
         if (!result) {
             if (type == "normal") {
-                // LogEvent.sendEvent("listen.normal");
+                LogEvent.sendEvent("listen.normal");
                 result = await (await import("react-st-modal")).Confirm('Do you want to start listening this podcast?', 'CONFIRMING!');
             }
             else if (type == "hint") {
-                // LogEvent.sendEvent("listen.with_hint");
+                LogEvent.sendEvent("listen.with_hint");
                 result = await (await import("react-st-modal")).Confirm('Do you want to finish the listen of this podcast with hint \n it will help you listen easier but decrease your final points?', 'CONFIRMING!');
             }
         }
 
-        if (!result && type) {
+        if (!result) {
             if (type == "normal") {
                 setOnLoadingListen(false);
             }
@@ -108,30 +103,30 @@ const Detail = () => {
             }
             return;
         }
-        // LogEvent.sendEvent("listen.continue");
+
+        LogEvent.sendEvent("listen.continue");
         try {
             if (podcast) {
-                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, code: number ,message:string}>(url, {
+                const res = await Fetch.postWithAccessToken<{ podcast_submit: RawPodcastSubmit, code: number }>('/api/podcast.submit/get', {
                     id: podcast.id,
                     metatype: type ? type : '',
-                    hint: type == "hint" ? getHintText(podcast.result, podcast.hint) : "",
-                    challenge_id:challenge_id
+                    hint: type == "hint" ? getHintText(podcast.result, podcast.hint) : ""
                 });
-                console.log(res.data);
+
                 if (res.status == 200) {
                     if (res.data && res.data.code == Code.SUCCESS) {
                         if (!is_submitted) {
                             Toast.success("Start Listening!");
-                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}_${challenge_id?challenge_id:""}`);
+                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}`);
                         } else {
-                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}_${challenge_id?challenge_id:""}/result`);
+                            navigate(`/podcasts/listen/${Helper.generateCode(podcast.name)}/${podcast.id}/result`);
                         }
-                    }else Toast.error(res.data.message);
+
+                    }
                 }
             }
         }
-        catch (err){
-            console.log(err);
+        catch {
             Toast.error("Some errors occurred!")
         }
 
@@ -142,41 +137,7 @@ const Detail = () => {
             setOnLoadingListenHint(false)
         }
     };
-    const Button = ({is_listening,is_submitted,challenge_name,challenge_id}:RecordPodcast)=>{
-        return (<>
-            {
-                challenge_name?(
-                    <div  className='flex text-green-500 items-center'>
-                        <HiOutlineBadgeCheck/>
-                        <div>{challenge_name}</div>
-                    </div>
-                ):""
-            }
-            <div>
-            {
-                !is_listening?(
-                    <div className="flex">
-                        <a
-                            onClick={() => { clickListen("hint",is_listening,is_submitted,challenge_id) }}
-                            className=" mr-3 bg-primary text-white py-2 font-medium rounded shadow mb-3 hover:bg-primary-dark transition-all cursor-pointer w-44 flex items-center justify-center ">
-                            {on_loading_listen_hint && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
-                            <span>Listen With Hint</span></a>
-                        <a
-                            onClick={() => { clickListen("normal",is_listening,is_submitted,challenge_id) }}
-                            className=" bg-primary text-white py-2 font-medium rounded shadow mb-3 hover:bg-primary-dark transition-all cursor-pointer w-48 flex items-center justify-center ">
-                            {on_loading_listen && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
-                            <span>Listen Without Hint</span></a>
-                    </div>
-                ):<a
-                    onClick={() => { clickListen("",is_listening,is_submitted,challenge_id) }}
-                    className=" bg-primary text-white py-2 font-medium rounded shadow hover:bg-primary-dark transition-all cursor-pointer w-48 flex items-center justify-center ">
-                    {on_loading_listen && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
-                    <span>{is_submitted ? "See your listen result" : "Continue Listening"}</span>
-                </a>
-            }
-            </div>
-        </>);
-    }
+
     const renderButton = () => {
         if (!me) {
             return (<Link href='/authentication/login'>
@@ -186,23 +147,33 @@ const Detail = () => {
             </Link>);
         }
 
-        if(record_podcasts && record_podcasts.length && isPodcastInChallenge(record_podcasts)){
+        if (!is_listening) {
             return (<>
-                {
-                    record_podcasts.map((item)=>{
-                        // console.log(item);
-                        return <Button key={item.challenge_id} {...item}/>
-                    })
-                }
+                <a
+                    onClick={() => { clickListen("hint") }}
+                    className=" mr-3 bg-primary text-white py-2 font-medium rounded shadow mb-3 hover:bg-primary-dark transition-all cursor-pointer w-44 flex items-center justify-center ">
+                    {on_loading_listen_hint && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
+                    <span>Listen With Hint</span></a>
+                <a
+                    onClick={() => { clickListen("normal") }}
+                    className=" bg-primary text-white py-2 font-medium rounded shadow mb-3 hover:bg-primary-dark transition-all cursor-pointer w-48 flex items-center justify-center ">
+                    {on_loading_listen && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
+                    <span>Listen Without Hint</span></a>
             </>);
         }
-        return <Button is_listening={is_listening} is_submitted={is_submitted}/>
+
+        return (<a
+            onClick={() => { clickListen() }}
+            className=" bg-primary text-white py-2 font-medium rounded shadow hover:bg-primary-dark transition-all cursor-pointer w-48 flex items-center justify-center ">
+            {on_loading_listen && <span className="animate-spin text-sm mr-1"><AiOutlineLoading3Quarters /></span>}
+            <span>{is_submitted ? "See your listen result" : "Continue Listening"}</span>
+        </a>);
     };
 
     return (<>
-        { podcast?( 
-        <>   
-        <Meta url={`${Constants.DOMAIN}/podcasts/detail/${Helper.generateCode(podcast.name + "_" + podcast.sub_name)}/${podcast.id}`}
+     {podcast? 
+     <>
+     <Meta url={`${Constants.DOMAIN}/podcasts/detail/${Helper.generateCode(podcast.name + "_" + podcast.sub_name)}/${podcast.id}`}
             description={Helper.extractContent(podcast.description).slice(0, 200)}
             title={`ESL ${podcast.sub_name} ${podcast.name}`}
             image={`${Constants.IMAGE_URL + podcast.image_url}`}
@@ -269,10 +240,22 @@ const Detail = () => {
                                 </div>
                             </>) : (<></>)}
 
-
-                            <div className=" mt-10 w-full">
-                                {renderButton()}
+                            <div className="flex flex-col mt-10">
+                                <div className="flex flex-col">
+                                    {
+                                        challenges &&  challenges.map((e)=>{
+                                             return (<div className="flex text-green-600 items-center" key={e.id}>
+                                                <HiOutlineBadgeCheck/>  
+                                                <span className="ml-1 mb-1">{e.name}</span>
+                                            </div>)
+                                         })
+                                     }
+                                </div>
+                                <div className="flex">
+                                    {renderButton()}
+                                </div>
                             </div>
+
                         </div>
                         <div className="sm:w-2/3 sm:pl-5 w-full sm:mt-0 mt-5 mb-10">
                             {ReactHtmlParser(podcast.description)}
@@ -292,8 +275,9 @@ const Detail = () => {
                 </div>
             </div>
         </div>
+
     </>
-    ):""}
+    :""}
     </>)
 }
 

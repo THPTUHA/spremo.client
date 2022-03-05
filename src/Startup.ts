@@ -2,13 +2,16 @@ import Fetch from "./services/Fetch";
 import { MeFunctions } from './store/me/functions';
 import { PodcastCollectionFunctions } from './store/podcast.collection/functions';
 import { Helper } from "./services/Helper";
-// import LogEvent from "packages/firebase/LogEvent";
+import  firebase from 'firebase/app';
+import Constants, { FIREBASE_CONFIG } from './Constants';
+import LogEvent from "./packages/firebase/LogEvent";
+import { ChallengeFunctions } from "./store/challenge/functions";
 
 class Startup {
     async init() {
-        // if (firebase.apps.length ==== 0) {
-        //     firebase.initializeApp(FIREBASE_CONFIG);
-        // }
+        if (firebase.apps.length === 0) {
+            firebase.initializeApp(FIREBASE_CONFIG);
+        }
 
         const access_token = await localStorage.getItem('access_token') || Helper.getCookie("access_token");
         if (access_token) {
@@ -23,7 +26,9 @@ class Startup {
         } else {
 
         }
+        await ChallengeFunctions.loadRawChallenges();
         await PodcastCollectionFunctions.loadAll();
+        LogEvent.sendEvent("first.event");
     }
 }
 

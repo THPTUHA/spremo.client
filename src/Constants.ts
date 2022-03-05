@@ -42,11 +42,9 @@ const BADGES = [
 const CHALLENGE = {
     ACTIVE :1,
     UNACTIVE:2,
-    JOIN : 3,
-    UNJOIN : 4,
-    FINSHED:5,
-    COMING:6,
-    DURING:7
+    DURING: 5,
+    FINISHED : 6,
+    COMING: 7
 }
 
 const Constants = {
@@ -97,16 +95,15 @@ export const PostCastSubmitType = {
 
 export const ORDERS = [
     { id: 1, label: "Newest", value: "newest" },
-    { id: 1, label: "Oldest", value: "oldest" },
+    { id: 2, label: "Oldest", value: "oldest" },
     { id: 3, label: "Most view", value: "mostview" },
 ]
 
-export const PodcastSource = [
-    { source_key: 0, source_name: "6 Minutes English", source_link: "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english" },
-    { source_key: 1, source_name: "English at work", source_link: "https://www.wele-learn.com/" },
-    { source_key: 2, source_name: "Spotlight English", source_link: "https://spotlightenglish.com/" },
-    { source_key: 3, source_name: "Others", source_link: "https://wele-learn.com " },
-];
+export const ORDER_CHALLENGE = [
+    { id: 1, label: "Newest", value: "newest" },
+    { id: 2, label: "Oldest", value: "oldest" },
+]
+
 
 export const DownloadSource = [
     { source_key: 0, source_name: "Media Fire" },
@@ -160,4 +157,53 @@ export const FIREBASE_CONFIG = process.env.NODE_ENV !== 'production' ? {
     messagingSenderId: "841968592154",
     appId: "1:841968592154:web:9412fd3726ace7faa238a3",
     measurementId: "G-VMGG5CX1ZK"
+}
+
+export const ChallengeType = [
+    {key: 0, name:"Limit Podcast"},
+    {key: 1, name:"Unlimit Podcast"},
+    {key: 2, name:"Limit Time"},
+    {key: 3, name:"UnLimit Time"},
+    {key: 4, name:"Team"}
+]
+
+export const ChallengeStatus = [
+    {key: CHALLENGE.ACTIVE, name:"Active"},
+    {key: CHALLENGE.UNACTIVE, name:"Unactive"},
+    {key: CHALLENGE.DURING, name:"During"},
+    {key: CHALLENGE.FINISHED, name:"Finished"}
+]
+
+export const TeamStatus ={
+    PUBLIC : 1,
+    PRIVATE: 2
+}
+
+export const PodcastSource = [
+    { source_key: 0, source_name: "6 Minutes English", source_link: "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english" },
+    { source_key: 1, source_name: "English at work", source_link: "https://www.wele-learn.com/" },
+    { source_key: 2, source_name: "Spotlight English", source_link: "https://spotlightenglish.com/" },
+    { source_key: 3, source_name: "Others", source_link: "https://wele-learn.com " },
+];
+
+
+export const Search ={
+    tags : [
+        { id: 0, name: "podcast", label:"Podcast", value: 1, type:"podcast", selected: false},
+        { id: 1, name: "challenge",label:"Challenge", value: 1 , type:"challenge",selected: false},
+        { id: 2, name: "active",label:"Acitve", value: CHALLENGE.ACTIVE, type:"challenge_status",selected: false},
+        { id: 3, name: "unactive",label:"Unacitve", value:CHALLENGE.UNACTIVE, type:"challenge_status",selected: false},
+        { id: 4, name: "during",label:"During",value:CHALLENGE.DURING , type:"challenge_status",selected: false},
+        { id: 5, name: "finished",label:"Finished", value:CHALLENGE.FINISHED, type:"challenge_status",selected: false},
+        { id: 6, name: "limitPodcast", label:"Limit Podcast",value: ChallengeType[0].key, type:"challenge_type",selected: false},
+        { id: 7, name: "unlimitPodcast", label:"Unlimit Podcast",value: ChallengeType[1].key, type:"challenge_type",selected: false},
+        { id: 8, name: "limitTime",label:"Limit Time",value: ChallengeType[2].key, type:"challenge_type",selected: false},
+        { id: 9, name: "unlimitTime",label:"Unlimit Time", value: ChallengeType[3].key, type:"challenge_type",selected: false},
+        { id: 10, name: "team",label:"Team", value: ChallengeType[4].key, type:"challenge_type",selected: false},
+        { id: 11, name: "6MinutesEnglish",label:"6 Minutes English", value: PodcastSource[0].source_key, type:"source_key",selected: false},
+        { id: 12, name: "englishAtWork",label:"English at work",value: PodcastSource[1].source_key, type:"source_key",selected: false},
+        { id: 13, name: "spotlightEnglish", label:"Spotlight English",value: PodcastSource[2].source_key, type:"source_key",selected: false},
+        { id: 14, name: "Others", label:"Others",value: PodcastSource[3].source_key, type:"source_key",selected: false},
+    ],
+  
 }

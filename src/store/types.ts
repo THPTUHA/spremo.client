@@ -37,7 +37,9 @@ export type RawNotification = {
     from_id: number,
     status: number,
     action: string,
-    link: string
+    link: string,
+    data: string,
+    
 };
 
 export type RawUser = {
@@ -57,7 +59,7 @@ export type RawUser = {
     since: number,
     last_update: number,
     role: number,
-    user_type: number[]
+    user_type: number[],
 };
 
 export type RawImage = {
@@ -134,15 +136,6 @@ export type RawPodcast = {
         score: number,
         user_id: number
     }[],
-
-    ///////
-    challenges: RawChallenge[],
-    state: any,
-    point: number,
-    podcast_submit: RawPodcastSubmit,
-    podcast_challenge: RawPodcastChallenge,
-    result_size: number,
-    hint_size: number,
 }
 
 export type RawPodcastSubmit = {
@@ -162,6 +155,7 @@ export type RawPodcastSubmit = {
     user_name: string,
     user_avatar: string,
     podcast_subname: string,
+    submit_time: number,
     current_time_listen: number,
     draft_array: string[],
     compare_result: {
@@ -178,9 +172,6 @@ export type RawPodcastSubmit = {
         },
         percent: number
     },
-    ////
-    ans_hint: number,
-    ans_without_hint: number,
 }
 
 export type RawPodcastCollection = {
@@ -348,23 +339,31 @@ export type RawChallenge = {
     metatype: string,
     name: string,
     user_id: number,
-    data:string,
+    data:any,
     description: string,
     background_image: string,
     start_time: number,
     end_time: number,
     since: number,
     last_update: number,
-    status: number,
+    status: string,
     podcast_ids: number[],
     challenge_type: {
-        team:{status:boolean, number_member:number},
-        limit_time:{status:boolean, time:number},
-        limit_podcast:{status:boolean, podcasts:{id:number,point:number}[]}
+        team:{
+            status:boolean,
+            number_member:number
+        },
+        limit_time:{
+            status:boolean,
+            value: number
+        }
+        limit_podcast:{
+            status:boolean,
+            podcasts:{  id:number,
+                        point:number
+                    }[]
+        }
     },
-
-    podcast_challenges: RawPodcastChallenge [],
-    is_join:boolean
 }
 
 export type RawRecordChallengeUser ={
@@ -372,11 +371,18 @@ export type RawRecordChallengeUser ={
     metatype: string,
     user_id:number,
     challenge_id: number;
-    data: any;
+    data: string,
     since: number;
     last_update: number;
     status: number;
     point: number,
+    team_id: number,
+    time_listen: number,
+    rank_record: {
+        last_update: number,
+        rank: number,
+        status: number
+    }
 }
 
 export type RawPodcastChallenge = {
@@ -389,17 +395,44 @@ export type RawPodcastChallenge = {
     data:any,
     draft_array: string,
     point: number,
-    listen_time: number,
+    time_listen: number,
     last_update: number,
     draft: string,
     status: number,
     compare_result: string,
     results: string,
     current_time_listen: number,
-    is_submitted: boolean,
+    is_submitted: number,
     submit_time: number,
-    /////////
-    ans_hint: number,
-    ans_without_hint: number,
-    challenge: RawChallenge
+    rank_record: {
+        last_update: number,
+        rank: number,
+        status: number
+    }
+}
+
+export type RawTeamChallenge = {
+    id: number,
+    name: string,
+    avatar: string,
+    metatype: string,
+    description: string,
+    user_id: number,
+    challenge_id: number,
+    data: string,
+    create_at: number,
+    last_update: number,
+    status: number,
+    user_ids: number[],
+    hash_key: string,
+    point: number,
+    time_listen: number,
+    user_invited_ids : number[],
+    user_requested_ids : number[],
+    admin_ids: number[],
+    rank_record: {
+        last_update: number,
+        rank: number,
+        status: number
+    }
 }

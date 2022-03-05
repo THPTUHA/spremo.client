@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BsFillSquareFill, BsChevronExpand } from 'react-icons/bs';
 import { HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
 import { IoNotificationsOffOutline, IoNotificationsOutline, IoSearch } from 'react-icons/io5';
 import { MdNotifications } from 'react-icons/md';
 import { GrUserAdmin } from 'react-icons/gr';
 import { CgProfile } from 'react-icons/cg';
+import { SiTarget } from 'react-icons/si';
 import SearchItem from './SearchItem';
 import Avatar from '../../components/ui/Avatar';
 
@@ -18,22 +19,25 @@ import { FiActivity, FiLogOut } from 'react-icons/fi';
 import { BsFillBarChartFill, BsMusicNoteList } from 'react-icons/bs';
 import { MeHook } from '../../store/me/hooks';
 import { MeFunctions } from '../../store/me/functions';
-import { RawNotification, RawUser } from '../../store/types';
+import { RawChallenge, RawNotification, RawUser } from '../../store/types';
 import { useLocation ,Link} from 'react-router-dom';
 import { Helper } from '../../services/Helper';
-// import firebase from 'firebase';
+import firebase from 'firebase';
 import { useAsync, useAsyncFn } from 'react-use';
 import Fetch from '../../services/Fetch';
 
 //@ts-ignore
 import Constants, { FIREBASE_CONFIG } from '../../Constants';
 import { RiFileUserLine } from 'react-icons/ri';
+import { ChallengeHook } from '../../store/challenges/hooks';
+import { ChallengeFunctions } from '../../store/challenges/functions';
 
 const links = [
     { name: 'Home', link: '/', icon: <AiFillHome /> },
     { name: 'Podcasts', link: '/podcasts', icon: <BsMusicNoteList /> },
     { name: 'Newsfeed', link: '/news-feed', icon: <FiActivity /> },
-    { name: 'Leaderboard', link: '/billboard', icon: <BsFillBarChartFill /> }
+    { name: 'Leaderboard', link: '/billboard', icon: <BsFillBarChartFill /> },
+    { name: 'Challenges', link: '/challenges', icon: <SiTarget/> }
 ]
 
 
@@ -54,75 +58,73 @@ const Navbar = () => {
         MeFunctions.logout();
     }, [me])
 
-    // useEffect(() => {
-    //     setShow(false);
-    // }, [Helper.getQueryString(router), router.pathname])
+    // const challenges = ChallengeHook.useRawChallenge();
 
-    // let observer: () => void;
-    // let system_observer: () => void;
+    let observer: () => void;
+    let system_observer: () => void;
 
-    // const state = useAsync(async () => {
-    //     if (me) {
-    //         // if (firebase.apps.length ==== 0) {
-    //         //     await firebase.initializeApp(FIREBASE_CONFIG);
-    //         // }
-    //         // const notificationQuery = firebase.firestore().collection("notifications").doc(CurrentUser.getUser()?.id.toString()).collection("notifications");
-    //         // const query = notificationQuery.orderBy("since", "desc").limit(10);
-    //         // observer = query.onSnapshot(async querySnapShot => {
-    //         //     querySnapShot.docChanges().forEach(change => {
+    const state = useAsync(async () => {
+        if (me) {
+            if (firebase.apps.length === 0) {
+                await firebase.initializeApp(FIREBASE_CONFIG);
+            }
+            const notificationQuery = firebase.firestore().collection("notifications").doc(CurrentUser.getUser()?.id.toString()).collection("notifications");
+            const query = notificationQuery.orderBy("since", "desc").limit(10);
+            observer = query.onSnapshot(async querySnapShot => {
+                querySnapShot.docChanges().forEach(change => {
 
-    //         //         if (change.type === 'added') {
-    //         //         }
+                    if (change.type == 'added') {
+                    }
 
-    //         //         if (change.type === 'modified') {
-    //         //         }
+                    if (change.type == 'modified') {
+                    }
 
-    //         //         if (change.type === 'removed') {
-    //         //         }
-    //         //     });
+                    if (change.type == 'removed') {
+                    }
+                });
 
-    //             const res = await Fetch.postWithAccessToken<{ unseen: number }>('/api/notification/get.unseen', {});
-    //             if (res.status === 200) {
-    //                 setUnseen(res.data.unseen);
-    //             }
-    //         })
-    //     }
-    //     else {
-    //         if (observer) {
-    //             observer();
-    //         }
-    //     }
-    // }, [me])
+                const res = await Fetch.postWithAccessToken<{ unseen: number }>('/api/notification/get.unseen', {});
+                if (res.status == 200) {
+                    setUnseen(res.data.unseen);
+                }
+            })
+        }
+        else {
+            if (observer) {
+                observer();
+            }
+        }
+    }, [me])
 
-    // const state2 = useAsync(async () => {
-    //     if (me) {
-    //         if (firebase.apps.length ==== 0) {
-    //             await firebase.initializeApp(FIREBASE_CONFIG);
-    //         }
-    //         const notificationQuery = firebase.firestore().collection("notifications").doc((-1).toString()).collection("notifications");
-    //         const query = notificationQuery.orderBy("since", "desc").limit(10);
-    //         system_observer = query.onSnapshot(async querySnapShot => {
-    //             querySnapShot.docChanges().forEach(change => {
-    //                 if (change.type === 'added') {
-    //                 }
-    //                 if (change.type === 'modified') {
-    //                 }
-    //                 if (change.type === 'removed') {
-    //                 }
-    //             });
+    const state2 = useAsync(async () => {
+        if (me) {
+            if (firebase.apps.length === 0) {
+                await firebase.initializeApp(FIREBASE_CONFIG);
+            }
+            const notificationQuery = firebase.firestore().collection("notifications").doc((-1).toString()).collection("notifications");
+            const query = notificationQuery.orderBy("since", "desc").limit(10);
+            system_observer = query.onSnapshot(async querySnapShot => {
+                querySnapShot.docChanges().forEach(change => {
+                    if (change.type == 'added') {
+                    }
+                    if (change.type == 'modified') {
+                    }
+                    if (change.type == 'removed') {
+                    }
+                });
 
-    //             var res = await Fetch.postWithAccessToken<{ unseen: number }>("/api/notification/get.system.unseen", {});
-    //             if (res.status === 200) {
-    //                 setSystemUnseen(res.data.unseen);
-    //             }
-    //         })
-    //     }
-    //     else {
-    //         if (system_observer) {
-    //             system_observer();
-    //         }
-    //     }
-    // }, [me])
+                var res = await Fetch.postWithAccessToken<{ unseen: number }>("/api/notification/get.system.unseen", {});
+                if (res.status == 200) {
+                    setSystemUnseen(res.data.unseen);
+                }
+            })
+        }
+        else {
+            if (system_observer) {
+                system_observer();
+            }
+        }
+    }, [me])
 
     return (
         <>
@@ -163,9 +165,9 @@ const Navbar = () => {
                         </ul>
                     </div>
                     <div className="items-center flex">
-                        <div className="none semi-xs:flex items-center bg-gray-100 rounded-lg my-2">
-                            <label className="pr-2.5 pl-2 py-2" htmlFor="search"><IoSearch /></label>
-                            <SearchItem />
+                        <div className="none semi-xs:flex items-center bg-gray-100 rounded-lg my-2 ">
+                            <label className="pr-2.5 pl-2 py-2 cursor-pointer" htmlFor="search"><IoSearch /></label>
+                            <SearchItem url={"podcasts"}/>
                         </div>
                         {CurrentUser.getUser() ? <div className="ml-3 py-1 flex items-center relative">
                             <div className="relative">
