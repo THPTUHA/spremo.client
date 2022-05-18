@@ -1,60 +1,72 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route,Navigate,useLocation } from 'react-router-dom';
 import Home from "./pages/home"
-import HomePageLayout from './components/ui/HomePageLayout';
-import LayoutAdmin from './components/ui/LayoutAdmin';
-import AdminPodcast from './pages/admin/podcasts';
-import CreatePodcast from './pages/admin/podcasts/create';
-import EditPodcast from './pages/admin/podcasts/edit';
-import PodcastDetail from './pages/podcasts/detail/name';
-import PodcastListen from './pages/podcasts/listen/name';
-
-import AdminChallenge from './pages/admin/challenges';
-import CreateChallenge from './pages/admin/challenges/create';
-import ChallengeDetail from './pages/challenges/detail/name';
-import EditChallenge from './pages/admin/challenges/edit';
-import Result from './pages/podcasts/listen/name/result';
-import Podcast from './pages/podcasts';
-import Billboard from './pages/billboard';
-import NewFeeds from './pages/news-feed';
-import Challenge from './pages/challenges';
 import Register from './pages/authentication/register';
 import WaitingRegister from './pages/authentication/wait-verify';
 import Login from './pages/authentication/login';
-import Search from './pages/search';
-import Notifications from './pages/notifications';
+import HomeLayout from './components/ui/HomeLayout';
+import Verify from './pages/authentication/verify';
+import Diary from './components/diary/Diary';
+import { MeHook } from './store/me/hooks';
+import MyBlog from './pages/blog/[name]';
+import CreateTextBlog from './pages/new/text';
+import EditTextBlog from './pages/edit/[username]';
+import Setting from './pages/blog/[name]/settings';
+import Record from './pages/blog/[name]/record';
+import BlogList from './components/blog/BlogList';
+import Profile from './components/blog/Profile';
+import ProfileModal from './components/blog/ProfileModal';
+import BlogDetail from './components/blog/BlogDetail';
+import Explore from './pages/explore';
+import AdminLayout from './components/ui/AdminLayout';
+import AdminUsers from './pages/admin/users';
+import AdminBlogs from './pages/admin/censorship';
+
 function App() {
+
+  const location = useLocation();
+  //@ts-ignore
+  const background = location.state && location.state.background;
+
+  console.log("BACK GROUND", background);
+  const me = MeHook.useMe();
   return (
-    <BrowserRouter>
     <div>
-      <Routes>
-       <Route path="/" element={<HomePageLayout children={<Home/>}/>} />
-       <Route path="/authentication/register" element={<Register/>} />
-       <Route path="/authentication/wait-verify" element={<WaitingRegister/>} />
-       <Route path="/authentication/login" element={<Login/>} />
+      <Routes location={background || location}>
+       <Route path="/" element={<HomeLayout children={<Home/>}/>} />
+       <Route path="/authentication/register" element={<HomeLayout children={<Register/>}/>} />
+       <Route path="/authentication/wait-verify" element={<HomeLayout children={<WaitingRegister/>}/>} />
+       <Route path="/authentication/verify/" element={<HomeLayout children={<Verify/>}/>} />
+       <Route path="/authentication/login" element={<HomeLayout children={<Login/>}/>} />
+       {/* <Route path="/diary" element={<HomeLayout children={me? <Diary/>: <Navigate to="/authentication/login" />}/>} /> */}
+       <Route path="/blog/:username"element={<HomeLayout children={<MyBlog/>}/>} />
 
-       <Route path="/admin/podcasts" element={<LayoutAdmin children={<AdminPodcast/>} />} />
-       <Route path="/admin/podcasts/create" element={<LayoutAdmin children={<CreatePodcast/>} />} />
-       <Route path="/admin/podcasts/edit/:id" element={<LayoutAdmin children={<EditPodcast/>} />} />
+       <Route path="/edit/:username/:id"element={<HomeLayout children={<EditTextBlog/>}/>} />
 
-       <Route path="/podcasts" element={<HomePageLayout children={<Podcast/>}/>} />
-       <Route path="/podcasts/detail/:name/:id" element={<HomePageLayout children={<PodcastDetail/>}/>} />
-       <Route path="/podcasts/listen/:name/:id" element={<HomePageLayout children={<PodcastListen/>}/>} />
-       <Route path="/podcasts/listen/:name/:id/result" element={<HomePageLayout children={<Result/>}/>} />
+       <Route path="/new/text"element={<HomeLayout children={<CreateTextBlog/>}/>} />
+       <Route path="/settings/blog/:username"element={<HomeLayout children={<Setting/>}/>} />
 
-       <Route path="/challenges" element={<HomePageLayout children={<Challenge/>}/>} />
-       <Route path="/admin/challenges" element={<LayoutAdmin children={<AdminChallenge/>} />} />
-       <Route path="/admin/challenges/create" element={<LayoutAdmin children={<CreateChallenge/>} />} />
-       <Route path="/challenges/detail/:name/:id" element={<HomePageLayout children={<ChallengeDetail/>}/>} />
-       <Route path="/admin/challenges/edit/:id" element={<LayoutAdmin children={<EditChallenge/>} />} />
+       <Route path="/admin/users"element={<AdminLayout children={<AdminUsers/>}/>} />
+       <Route path="/admin/blogs"element={<AdminLayout children={<AdminBlogs/>}/>} />
 
-       <Route path="/billboard" element={<HomePageLayout children={<Billboard/>}/>} />
-       <Route path="/news-feed" element={<HomePageLayout children={<NewFeeds/>}/>} />
-       <Route path="/notifications" element={<HomePageLayout children={<Notifications/>}/>} />
-       <Route path="/search" element={<HomePageLayout children={<Search/>}/>} />
+       <Route path="/active/blog/:username"element={<HomeLayout children={<Record/>}/>} />
+
+       <Route path="/search/:q" element={<HomeLayout children={<BlogList/>}/>} />
+       {/* <Route path="/blog/view/:username/:id"element={<HomeLayout children={<BlogList/>}/>} /> */}
+       {/* {background && <Route path="/blog/view/:username"element={<ProfileModal/>} />} */}
+       <Route path="/blog/view/:username"element={<Profile/>} />
+       <Route path="/blog/view/:username/:id"element={<BlogDetail/>} />
+       
+       <Route path="/explore/trending" element={<HomeLayout children={<Explore/>}/>} />
+       <Route path="/explore/staff-picks" element={<HomeLayout children={<Explore/>}/>} />
       </Routes>
+        {background && 
+          <Routes>
+          <Route path="/blog/view/:username"element={<ProfileModal/>} />
+          <Route path="/blog/view/:username/:id"element={<BlogDetail/>} />
+        </Routes>
+        }
     </div>
-  </BrowserRouter>
   );
 }
 

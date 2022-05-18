@@ -1,294 +1,264 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BsFillSquareFill, BsChevronExpand } from 'react-icons/bs';
-import { HiOutlineMenu, HiOutlineX } from 'react-icons/hi';
-import { IoNotificationsOffOutline, IoNotificationsOutline, IoSearch } from 'react-icons/io5';
-import { MdNotifications } from 'react-icons/md';
-import { GrUserAdmin } from 'react-icons/gr';
-import { CgProfile } from 'react-icons/cg';
-import { SiTarget } from 'react-icons/si';
-import SearchItem from './SearchItem';
-import Avatar from '../../components/ui/Avatar';
-
-import { CSSTransition } from 'react-transition-group';
-
-import OutsideClickDetection from '../../components/ui/OutsideClickDetection';
-// import Link from 'next/link';
-import CurrentUser from '../../services/CurrentUser';
-import { AiFillHome } from 'react-icons/ai';
-import { FiActivity, FiLogOut } from 'react-icons/fi';
-import { BsFillBarChartFill, BsMusicNoteList } from 'react-icons/bs';
-import { MeHook } from '../../store/me/hooks';
-import { MeFunctions } from '../../store/me/functions';
-import { RawChallenge, RawNotification, RawUser } from '../../store/types';
-import { useLocation ,Link} from 'react-router-dom';
-import { Helper } from '../../services/Helper';
+import {AiOutlineSearch} from 'react-icons/ai';
+import { Link, useLocation } from 'react-router-dom';
+import {MeHook} from '../../store/me/hooks';
+import {MeFunctions} from '../../store/me/functions';
+import { BiAngry, BiHappyBeaming, BiSad } from 'react-icons/bi';
+import { BiMessageAltDetail} from 'react-icons/bi';
+import {MdNotifications, MdOutlineExplore} from 'react-icons/md';
+import { BsPencil} from 'react-icons/bs';
+import { EmotionHook } from "../../store/emotion/hooks";
+import {EMOTION_IDS, FIREBASE_CONFIG} from "../../Constants";
+import { EmtionFunctions } from "../../store/emotion/functions";
+import { IoMdNotificationsOutline } from 'react-icons/io';
+import { useState } from 'react';
+import { useAsync } from 'react-use';
 import firebase from 'firebase';
-import { useAsync, useAsyncFn } from 'react-use';
 import Fetch from '../../services/Fetch';
+import Modal from 'react-responsive-modal';
+import { RawNotification } from '../../store/types';
+import useNotificationLoadMore from '../../hooks/useNotificationLoadMore';
+import OutsideClickDetect from '../ui/OutsideClickDetect';
+import SearchItem from './SearchItem';
+import { SocketHook } from '../../store/socket/hooks';
+import { ChatFunctions } from '../../store/chat/funtions';
+import ChatList from '../chat/ChatList';
+import { MdHome} from 'react-icons/md';
+import { StyleHook } from '../../store/style/hooks';
 
-//@ts-ignore
-import Constants, { FIREBASE_CONFIG } from '../../Constants';
-import { RiFileUserLine } from 'react-icons/ri';
-import { ChallengeHook } from '../../store/challenges/hooks';
-import { ChallengeFunctions } from '../../store/challenges/functions';
+const getEmotion = (status: number)=>{
+    switch(status){
+        case EMOTION_IDS.HAPPY:
+            return (
+                <ul className="feedback">
+                    <li className="happy active" >
+                        <div>
+                            <svg className="eye left">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="eye right">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                        </div>
+                    </li>
+                </ul>
+            )
+        case EMOTION_IDS.SAD:
+            return (
+                <ul className="feedback">
+                    <li className="sad active">
+                        <div>
+                            <svg className="eye left">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="eye right">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="mouthsm">
+                                <use xlinkHref="#mouthsm"/>
+                            </svg>
+                        </div>
+                    </li>
+                </ul>
+            )
+        case EMOTION_IDS.ANGRY:
+            return (
+                <ul className="feedback ">
+                    <li className="angry active">
+                        <div>
+                            <svg className="eye left">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="eye right">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="mouthsm">
+                                <use xlinkHref="#mouthsm"/>
+                            </svg>
+                        </div>
+                    </li>
+                </ul>
+            )
+        case EMOTION_IDS.OK:
+            return (
+                <ul className="feedback active">
+                     <li className="ok active">
+                        <div></div>
+                    </li>
+                </ul>
+            )
+        case EMOTION_IDS.GOOD:
+            return (
+                <ul className="feedback ">
+                     <li className="good active">
+                        <div>
+                            <svg className="eye left">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="eye right">
+                                <use xlinkHref="#eye"/>
+                            </svg>
+                            <svg className="mouthsm">
+                                <use xlinkHref="#mouthsm"/>
+                            </svg>
+                        </div>
+                    </li>
+                </ul>
+            )
+    }
+}
 
-const links = [
-    { name: 'Home', link: '/', icon: <AiFillHome /> },
-    { name: 'Podcasts', link: '/podcasts', icon: <BsMusicNoteList /> },
-    { name: 'Newsfeed', link: '/news-feed', icon: <FiActivity /> },
-    { name: 'Leaderboard', link: '/billboard', icon: <BsFillBarChartFill /> },
-    { name: 'Challenges', link: '/challenges', icon: <SiTarget/> }
-]
-
-
-
-const Navbar = () => {
-    const [show, setShow] = useState(false);
-    const [page, setPage] = useState(1);
-    const [notifications, setNotifications] = useState<{ [key: number]: any }>({});
-    const [unseen, setUnseen] = useState(0);
-    const [system_unseen, setSystemUnseen] = useState(0);
-
-    const [open_nav, setOpenNav] = useState(false);
-    const [open_user_menu, setOpenUserMenu] = useState(false);
+const Navbar = ()=>{
     const location = useLocation();
     const me = MeHook.useMe();
-    const logout = useCallback(() => {
-        setOpenUserMenu(false);
-        MeFunctions.logout();
-    }, [me])
+    const emotion = EmotionHook.useEmotion();
+    const style = StyleHook.useStyle();
 
-    // const challenges = ChallengeHook.useRawChallenge();
-
-    let observer: () => void;
-    let system_observer: () => void;
-
-    const state = useAsync(async () => {
-        if (me) {
-            if (firebase.apps.length === 0) {
-                await firebase.initializeApp(FIREBASE_CONFIG);
-            }
-            const notificationQuery = firebase.firestore().collection("notifications").doc(CurrentUser.getUser()?.id.toString()).collection("notifications");
-            const query = notificationQuery.orderBy("since", "desc").limit(10);
-            observer = query.onSnapshot(async querySnapShot => {
-                querySnapShot.docChanges().forEach(change => {
-
-                    if (change.type == 'added') {
-                    }
-
-                    if (change.type == 'modified') {
-                    }
-
-                    if (change.type == 'removed') {
-                    }
-                });
-
-                const res = await Fetch.postWithAccessToken<{ unseen: number }>('/api/notification/get.unseen', {});
-                if (res.status == 200) {
-                    setUnseen(res.data.unseen);
-                }
-            })
+    useAsync(async()=>{
+        if(me){
+            await EmtionFunctions.init();
         }
-        else {
-            if (observer) {
-                observer();
-            }
-        }
-    }, [me])
+    },[me])
+    
+    const [open_notifi,setOpenNotifi] = useState(false);
+    const [open_chat,setOpenChat] = useState(false);
 
-    const state2 = useAsync(async () => {
-        if (me) {
-            if (firebase.apps.length === 0) {
-                await firebase.initializeApp(FIREBASE_CONFIG);
-            }
-            const notificationQuery = firebase.firestore().collection("notifications").doc((-1).toString()).collection("notifications");
-            const query = notificationQuery.orderBy("since", "desc").limit(10);
-            system_observer = query.onSnapshot(async querySnapShot => {
-                querySnapShot.docChanges().forEach(change => {
-                    if (change.type == 'added') {
-                    }
-                    if (change.type == 'modified') {
-                    }
-                    if (change.type == 'removed') {
-                    }
-                });
+    const socket = SocketHook.useSocket();
 
-                var res = await Fetch.postWithAccessToken<{ unseen: number }>("/api/notification/get.system.unseen", {});
-                if (res.status == 200) {
-                    setSystemUnseen(res.data.unseen);
-                }
-            })
-        }
-        else {
-            if (system_observer) {
-                system_observer();
+
+    const [page, setPage] = useState(1);
+    const page_size = 10;
+
+    const {
+        on_loading,
+        notifications,
+        has_more,
+        setUnseen,
+        unseen
+    } = useNotificationLoadMore(page, page_size)
+
+    useAsync(async()=>{
+       if(open_notifi){
+            const res = await Fetch.postWithAccessToken<{ unseen: number }>('/api/notification/unseen.get', {});
+            if (res.status == 200) {
+                setUnseen(res.data.unseen);
             }
-        }
-    }, [me])
+       }
+    },[open_notifi])
 
     return (
-        <>
-            <nav className=" z-40 fixed left-0 top-0 w-full shadow">
-                <div className="relative flex justify-between items-center px-5 2xl:px-20 sm:px-10 bg-white">
-                    <div className="flex items-center">
-                        <div className="mr-4 flex semi-md:none">
-                            <span className="text-2xl cursor-pointer text-primary"
-                                onClick={() => setOpenNav(!open_nav)}
-                            >
-                                {open_nav ? <HiOutlineX /> : <HiOutlineMenu />}
-                            </span>
-                        </div>
-
-                        {/* <Link href="/"> */}
-                        <Link to="/">
-                            <a className="flex items-center text-xl xs:mr-5 text-primary hover:text-primary">
-                                <img src="/static/logo.png" className=" h-10" alt="" />
-                            </a>
-
-                        </Link>
-                        <ul className="none semi-md:flex">
-                            {links.map((item, index) => (
-                                <li key={index} className="transition-all font-medium text-gray-800">
-                                    {/* <Link href={`${item.link}`}> */}
-                                    <Link to={`${item.link}`}>
-                                        <a className={`
-                                        ${location.pathname === item.link ? 'text-primary' : ''}
-                                        transition-all flex items-center px-3 py-3.5 box-border text-sm 
-                                        hover:text-gray-800 border-b-2 border-transparent hover:border-primary `}>
-                                            <span>{item.name}</span>
-                                            <span className="ml-2 text-lg">{item.icon}</span>
-                                        </a>
-
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                    <div className="items-center flex">
-                        <div className="none semi-xs:flex items-center bg-gray-100 rounded-lg my-2 ">
-                            <label className="pr-2.5 pl-2 py-2 cursor-pointer" htmlFor="search"><IoSearch /></label>
-                            <SearchItem url={"podcasts"}/>
-                        </div>
-                        {CurrentUser.getUser() ? <div className="ml-3 py-1 flex items-center relative">
-                            <div className="relative">
-                                <Link to="/notifications" >
-                                    <a className="relative cursor-pointer">
-                                        <span className="flex items-center justify-center px-2 py-1.5 text-lg bg-primary text-white rounded-lg"
-                                        ><MdNotifications /></span>
-                                        {(unseen + system_unseen > 0) && <span className="absolute -top-2 -right-2 text-white font-medium bg-red-700 text-sm flex justify-center items-center w-6 h-6 rounded-full">
-                                            {unseen + system_unseen}</span>}
-                                    </a>
-                                </Link>
-                            </div>
-                            <OutsideClickDetection outsideFunc={() => setOpenUserMenu(false)}>
-                                <div
-                                    onClick={() => setOpenUserMenu(!open_user_menu)}
-                                    className="ml-1 relative flex items-center cursor-pointer rounded-full hover:bg-primary-light py-1 px-1.5">
-
-                                    <Avatar user={CurrentUser.getUser() as RawUser} />
-                                    <span className="font-medium ml-1 text-base">{CurrentUser.getUser()?.fullname}</span>
-                                    <CSSTransition
-                                        in={open_user_menu}
-                                        classNames="user-menu"
-                                        unmountOnExit
-                                        timeout={300}
-                                    >
-                                        <div className="absolute top-full w-48 right-0 rounded px-3 py-2 bg-white shadow">
-                                            {me?.role === Constants.ROLES.Admin && (<>
-                                                {/* <Link href="/admin/podcasts" > */}
-                                                <Link to="/admin/podcasts" >
-                                                    <a className="hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer flex items-center text-gray-800 hover:text-gray-600 transition-all">
-                                                        <span className="mr-1"><GrUserAdmin /></span>
-                                                        <span>Admin</span>
-                                                    </a>
-                                                </Link>
-                                            </>)}
-                                            <Link to="/record">
-                                                <a className="hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer flex items-center text-gray-800 hover:text-gray-600 transition-all">
-                                                    <span className="mr-1"><CgProfile /></span>
-                                                    <span>Profile</span>
-                                                </a>
-                                            </Link>
-                                            <Link to={`/profile/${Helper.generateCode(me ? me.fullname : "")}/${me?.id}`}>
-                                                <a className="hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer flex items-center text-gray-800 hover:text-gray-600 transition-all">
-                                                    <span className="mr-1"><RiFileUserLine /></span>
-                                                    <span>Trang cá nhân</span>
-                                                </a>
-                                            </Link>
-                                            <Link to="/notifications">
-                                                <a className=" hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer flex items-center text-gray-800 hover:text-gray-600 transition-all">
-                                                    <span className="mr-1"><IoNotificationsOutline /></span>
-                                                    <span className="flex">
-                                                        <span>Notifications</span>
-                                                        <span className="bg-primary rounded-full ml-2 text-white text-xs font-medium flex justify-center items-center h-6 w-6">
-                                                            {unseen + system_unseen > 0 ? unseen + system_unseen : 0}
-                                                        </span>
-                                                    </span>
-                                                </a>
-                                            </Link>
-                                            <span onClick={logout} className="hover:bg-gray-200 rounded-lg px-2 py-1 cursor-pointer flex items-center text-gray-800 hover:text-gray-600 transition-all">
-                                                <span className="mr-1"><FiLogOut /></span>
-                                                <span>Logout</span>
-                                            </span>
-                                        </div>
-                                    </CSSTransition>
-                                </div>
-
-                            </OutsideClickDetection>
-                        </div> : <div className="ml-3 py-2 flex items-center">
-                            <Link to={'/authentication/register'}>
-                                <a className="text-sm inline-block rounded-sm text-center bg-primary-light px-2 py-1.5  font-semibold text-primary-dark hover:text-white hover:bg-primary-dark transition-all">
-                                    Sign up
-                                </a>
-
-                            </Link>
-                            <Link to={'/authentication/login'}>
-                                <a className="text-sm ml-3 inline-block rounded-sm text-center bg-primary px-2 py-1.5 font-semibold text-white hover:text-white hover:bg-primary-dark transition-all">
-                                    Sign in
-                                </a>
-
-                            </Link>
-                        </div>}
-
-
-                    </div>
-                    <CSSTransition
-                        in={open_nav}
-                        timeout={300}
-                        classNames="dropdown-navbar"
-                        unmountOnExit
-                    >
-                        <div style={{ zIndex: -1 }} className=" bg-white shadow w-full absolute top-full left-0 block semi-md:none">
-
-                            <OutsideClickDetection outsideFunc={() => setOpenNav(false)}>
-                                <ul className="p-0">
-                                    <li className="px-5 semi-xs:none py-2">
-                                        <div className="flex w-full bg-gray-50 rounded-md">
-                                            <label className="pr-2.5 px-2 py-2" htmlFor="search"><IoSearch /></label>
-                                            <input id="search" className="focus:outline-none w-full bg-transparent"
-                                                type="text" placeholder="Search..." />
-                                        </div>
-                                    </li>
-                                    {links.map((item, index) => (
-                                        <li key={index} className="
-                                            text-base m-0 transition-all font-medium 
-                                            text-gray-800">
-                                            <Link to={`${item.link}`}>
-                                                <a className="inline-block pl-5 sm:pl-10 py-2 transition-all hover:text-gray-800 hover:bg-gray-100 w-full">
-                                                    {item.name}
-                                                </a>
-
-                                            </Link>
-                                        </li>
-                                    ))}
-
-                                </ul>
-                            </OutsideClickDetection>
-                        </div>
-                    </CSSTransition>
+        <div className="bg-transparent fixed w-full mt-3 z-50" style={{color:style.text_color}}>
+            <div className='flex justify-between relative'>
+                <div className="flex ml-8 w-7/12 items-center">
+                    <Link to="/">
+                        <img src="/logo.png" className="w-10 h-10 rounded "/>
+                    </Link>
+                    <SearchItem/>
                 </div>
-            </nav>
-        </>
+                {
+                    me ? (
+                        <div className='flex items-center justify-between '>
+                            <div onClick={()=>EmtionFunctions.openModal()} className="cursor-pointer mr-2">
+                                {getEmotion(emotion.id)}
+                                <svg xmlns="http://www.w3.org/2000/svg" style={{display: "none"}}>
+                                    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 4" id="eye">
+                                        <path d="M1,1 C1.83333333,2.16666667 2.66666667,2.75 3.5,2.75 C4.33333333,2.75 5.16666667,2.16666667 6,1"></path>
+                                    </symbol>
+                                    <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 7" id="mouthsm">
+                                        <path d="M1,5.5 C3.66666667,2.5 6.33333333,1 9,1 C11.6666667,1 14.3333333,2.5 17,5.5"></path>
+                                    </symbol>
+                                </svg>
+                            </div>
+                            <Link to={`/blog/${me.username}`}>
+                                <div className='cursor-pointer font-medium text-lg mr-3'>{me.username}</div>
+                            </Link>
+                            <Link to={`/`}>
+                                <MdHome className={`${location.pathname === "/" ? '' : 'opacity-50 '}w-8 h-auto mr-4 cursor-pointer`}/>
+                            </Link>
+                            <div>
+                                <BiMessageAltDetail onClick={()=>{setOpenChat(!open_chat);setOpenNotifi(false);}} 
+                                    className={`${open_chat? '' : 'opacity-50 '} w-8 h-auto mr-4 cursor-pointer`}/>
+                                {
+                                    open_chat && (
+                                        <div className='w-1/4 fixed right-0 mr-10 rounded' style={{backgroundColor:style.bg_blog_color}}>
+                                            <OutsideClickDetect outsideFunc={() => setOpenChat(!open_chat)}>
+                                                <ChatList/>
+                                            </OutsideClickDetect>
+                                        </div>
+                                    )
+                                }
+                            </div>
+                           
+                           <Link to="/explore/trending">
+                               <div className={`${location.pathname === "/explore/trending" ? '' : 'opacity-50 '} mr-2`} >
+                                    <MdOutlineExplore className='w-8 h-auto'/>
+                               </div>
+                           </Link>
+                            {/* <div onClick={handleLogOut}>Logout</div> */}
+                            <div className="relative mr-5">
+                                <a className="relative cursor-pointer" onClick={()=>{setOpenNotifi(!open_notifi); setOpenChat(false)}}>
+                                    <span 
+                                        className={`${open_notifi? '' : 'opacity-50 '} flex items-center justify-center px-2 py-1.5 text-lg rounded-lg`}
+                                    ><MdNotifications className='w-8 h-auto'/></span>
+                                    {(unseen > 0) && <span className="absolute -top-2 -right-2 text-white font-medium bg-red-700 text-sm flex justify-center items-center w-6 h-6 rounded-full">
+                                        {unseen }</span>}
+                                </a>
+                            </div>
+                        </div>
+                        ) 
+                        :(
+                        <div className="flex mr-4">
+                            <Link to="/explore/trending">
+                               <div className={`${location.pathname === "/explore/trending" ? '' : 'opacity-50 '} mr-2`} >
+                                    <MdOutlineExplore className='w-8 h-auto'/>
+                               </div>
+                           </Link>
+                            {
+                                // location.pathname == "/authentication/register" &&
+                                <Link to="/authentication/login">
+                                    <button className='h-9 px-3 bg-green-500 font-medium rounded' >Log in</button>
+                                </Link>
+                            }
+                            {
+                                // location.pathname == "/authentication/login" &&
+                                <Link to="/authentication/register">
+                                    <button className='h-9 px-3 bg-blue-500 font-medium rounded'>Sign up</button>
+                                </Link>
+                            }
+                        </div>
+                    )
+                }
+                {me && <button className='fixed right-10 top-20'><BsPencil className='w-10 h-auto'/></button>}
+                
+            </div>
+            {
+                open_notifi && (
+                    <div className='w-1/4 fixed right-0 mr-10 rounded' style={{backgroundColor:style.bg_blog_color}}>
+                        <OutsideClickDetect outsideFunc={() => setOpenNotifi(!open_notifi)}>
+                        {
+                            <div className='py-2 ml-5'>
+                            {
+                                on_loading ? <div>Loding...</div>:
+                                        notifications.map((notifi)=>(
+                                            <div key={notifi.id} className="py-2">
+                                                <Link to={notifi.link}>
+                                                    <div className='flex items-center'>
+                                                        {notifi.from_avatar && <img className='w-10 h-10 rounded-full' src={notifi.from_avatar}/>}
+                                                        <div className='flex ml-3 flex-col'>
+                                                            {/* <div>{notifi.from_name}</div> */}
+                                                            <div dangerouslySetInnerHTML={{__html: notifi.content}}></div>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            </div>
+                                        ))
+                            }
+                            </div>
+                        }
+                    </OutsideClickDetect>
+                    </div>
+                )
+            }
+        </div>
     )
 }
 

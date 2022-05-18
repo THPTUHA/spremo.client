@@ -4,8 +4,9 @@ import { PodcastCollectionFunctions } from './store/podcast.collection/functions
 import { Helper } from "./services/Helper";
 import  firebase from 'firebase/app';
 import Constants, { FIREBASE_CONFIG } from './Constants';
-import LogEvent from "./packages/firebase/LogEvent";
 import { ChallengeFunctions } from "./store/challenge/functions";
+import { EmtionFunctions } from "./store/emotion/functions";
+import { SocketFunctions } from "./store/socket/funtions";
 
 class Startup {
     async init() {
@@ -16,9 +17,9 @@ class Startup {
         const access_token = await localStorage.getItem('access_token') || Helper.getCookie("access_token");
         if (access_token) {
             await Fetch.setAccessToken(access_token);
+            await SocketFunctions.init();
             try {
                 await MeFunctions.loadProfile();
-                // await UserModel.loadUsers();
             } catch (e) {
 
             }
@@ -26,9 +27,8 @@ class Startup {
         } else {
 
         }
-        await ChallengeFunctions.loadRawChallenges();
-        await PodcastCollectionFunctions.loadAll();
-        LogEvent.sendEvent("first.event");
+        // await ChallengeFunctions.loadRawChallenges();
+        // await PodcastCollectionFunctions.loadAll();
     }
 }
 

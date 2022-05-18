@@ -32,7 +32,7 @@ export type RawNotification = {
     since: number,
     image: string,
     content: string,
-    from_avatar: RawImage,
+    from_avatar: string,
     from_name: string,
     from_id: number,
     status: number,
@@ -45,21 +45,32 @@ export type RawNotification = {
 export type RawUser = {
     id: number,
     username: string,
-    fullname: string,
-    facebook: string,
-    dayOfBirth: number,
-    email: string,
+	password: string,
     avatar: string,
-    address: string,
-    cover_avatar: string,
-    sex: string,
+	contact: string,
+    sex: number,
     description: string,
-    status: number,
-    phone: string,
-    since: number,
-    last_update: number,
     role: number,
-    user_type: number[],
+    last_login: number,
+    emotional_status: number,
+    blog_ids: string,
+    group_ids: string,
+    email: string,
+    last_update: number,
+    active_status: number,
+    data: any,
+    background: string,
+    day_of_birth: number,
+    follower_number: number,
+    follow_status: number,
+    friends: {
+        user_id: number,
+        user_name: string
+    }[],
+    following: {
+                user_id: number,
+                status: number
+            }[],
 };
 
 export type RawImage = {
@@ -71,12 +82,10 @@ export type RawImage = {
 export type RawComment = {
     user_id: number,
     id: number,
-    user_name: string,
+    username: string,
     user_avatar: string,
     last_update: number,
-    metatype: string,
     object_id: string,
-    object_export: string,
     object_type: string,
     content: string,
     since: number
@@ -98,9 +107,13 @@ export type RawBillboard = {
 }
 
 export type RawRecord = {
-    score: number,
-    podcast: number,
-    time: number
+    id: number,
+    user_id: number,
+    since: number,
+    like_number: number,
+    comment_number: number,
+    view_number: number,
+    blog_number: number
 }
 
 
@@ -435,4 +448,13 @@ export type RawTeamChallenge = {
         rank: number,
         status: number
     }
+}
+
+export type RawLike = {
+    id: number,
+    user_id: number,
+    since: number,
+    emotion_id: number,
+    blog_id: number,
+    hash_key: string
 }

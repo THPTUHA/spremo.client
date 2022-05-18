@@ -2,9 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import "./styles/globals.css";
 import "./styles/styles.css";
+import "./styles/emotion.css";
+
 import 'react-quill/dist/quill.snow.css';
 import 'react-responsive-modal/styles.css';
 // import 'react-responsive-modal/styles.css';
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import 'react-perfect-scrollbar/dist/css/styles.css';
+
 import 'react-toastify/dist/ReactToastify.css';
 import App from './App';
 import { ToastContainer } from 'react-toastify'
@@ -12,18 +18,17 @@ import reportWebVitals from './reportWebVitals';
 import {Provider} from "react-redux";
 import store from "./store/store";
 import AppWrapper from './components/ui/AppWrapper';
-import FetchLoading from './components/loading';
-import Badge from './components/badge/Badge';
-import Congrat from './components/congrat/Congrat';
+import EmotionList from './components/emotion/EmotionList';
+import { BrowserRouter } from 'react-router-dom';
 ReactDOM.render(
   <Provider store={store}>
     <React.StrictMode>
       <ToastContainer />
-      <Badge/>
-      <Congrat/>
-      {/* <FetchLoading/> */}
+      <EmotionList/>
       <AppWrapper>
+        <BrowserRouter>
           <App />
+        </BrowserRouter>
       </AppWrapper>
     </React.StrictMode>
   </Provider>,

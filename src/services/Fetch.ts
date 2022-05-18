@@ -1,22 +1,20 @@
 import axios, {AxiosPromise} from "axios";
 import {LoadingFunctions} from "../store/loading/functions";
 
-
 class Fetch {
 
-    private __base_url: string = process.env.NODE_ENV !== "production" ? 'http://localhost:3001' : "https://wele-learn.com";
+    private __base_url: string = process.env.NODE_ENV !== "production" ? 'http://localhost:3001' : "";
     private __access_token: string = "";
 
     setAccessToken(value: string) {
         this.__access_token = value;
     };
 
-    //Not use
-    async login({username, password}: {username: string, password: string}){
-        return null;
+    getAccessToken() {
+        return this.__access_token;
     };
-
     async postWithAccessToken<ResponseType>(url: string, params: Object, array_fields: string[] = [], show_loading = true): Promise<AxiosPromise<ResponseType>> {
+        console.log("Token", this.__access_token);
         return await this.post<ResponseType>(url, {
             ...params,
             access_token: this.__access_token,
@@ -31,14 +29,7 @@ class Fetch {
     }
 
     async postJson<ResponseType>(url: string, params: Object): Promise<AxiosPromise<ResponseType>> {
-        // LoadingFunctions.setLoading(true, 0.1);
         const res = axios.post(`${this.__base_url}${url}`, params, {
-            // onDownloadProgress: function (progress_event) {
-            //     LoadingFunctions.setLoading(true, progress_event.loaded / progress_event.total * 100);
-            //     if (progress_event.loaded === progress_event.total) {
-            //         LoadingFunctions.setLoading(false, 0);
-            //     }
-            // }
         });
         return res;
     };
@@ -65,7 +56,7 @@ class Fetch {
 
         }
 
-        const res = axios.post(`${this.__base_url}${url}`, form_data, {
+        const res = await axios.post(`${this.__base_url}${url}`, form_data, {
             onDownloadProgress: function (progress_event) {
                 LoadingFunctions.setLoading(true, progress_event.loaded / progress_event.total * 100);
                 if (progress_event.loaded === progress_event.total) {
@@ -75,14 +66,6 @@ class Fetch {
         });
 
         return res;
-    }
-
-    delete<ResponseType>(url: string): Promise<AxiosPromise<ResponseType>> {
-        return axios.delete(`${this.__base_url}${url}`);
-    }
-
-    put<ResponseType>(url: string, params: Object): Promise<AxiosPromise<ResponseType>> {
-        return axios.put(`${this.__base_url}${url}`, params);
     }
 }
 

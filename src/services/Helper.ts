@@ -1,4 +1,4 @@
-import { Search, USER_ACTION_METATYPE } from '../Constants';
+import {  USER_ACTION_METATYPE } from '../Constants';
 import { NextRouter } from 'next/router';
 
 import { RawPodcastChallenge, RawUser, RawUserActionLog, UploadImage } from '../store/types';
@@ -18,6 +18,13 @@ interface Tag{
 }
 export class Helper {
 
+    static blobToFile(theBlob: Blob, fileName:string): File{
+        var b: any = theBlob;
+        b.lastModifiedDate = new Date();
+        b.name = fileName;
+        return <File>theBlob;
+    };
+
     static time () {
         return Math.floor(new Date().getTime() / 1000);
     };
@@ -26,18 +33,12 @@ export class Helper {
         return uri.normalize("NFD").replace(/\s/g, "+");
     }
 
-    // static convertMoney(val: number | string) {
-    //     const numberString = String(val).replace(
-    //         /^\d+/,
-    //         number => [...number].map(
-    //             (digit, index, digits) => (
-    //                 !index || (digits.length - index) % 3 ? '' : ','
-    //             ) + digit
-    //         ).join('')
-    //     );
-
-    //     return numberString;
-    // }
+    static formatTime(seconds: number) {
+        const seconds_format = seconds % 60;
+        const minus_format = (seconds - seconds_format)/60;
+        return  (minus_format < 10 ? `0${minus_format}` : minus_format) + ":" +(seconds_format < 10 ? `0${seconds_format}` : seconds_format)
+    }
+    
     static getParamFromTag(tags: Tag[]){
         const collections = [];
         const source_keys = [];

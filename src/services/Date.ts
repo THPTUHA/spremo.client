@@ -16,6 +16,12 @@ export default class DateUtil {
         return results.sort((b, a) => b - a);
     }
 
+    static getExactDay(t: number){
+        const day = new Date(t * 1000);
+        const time  = Math.floor(day.getTime()/1000);
+        return time - day.getHours()*3600 - day.getMinutes()*60 - day.getSeconds();
+    }
+
     static getMondayInMonth = (ts: number) => {
         var start_month = DateUtil.beginMonth(ts);
 

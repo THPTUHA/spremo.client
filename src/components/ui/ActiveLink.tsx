@@ -10,7 +10,6 @@ interface Props {
 }
 
 const AutoActiveLink = ({ children, href, bg_active_class, text_active_class, hover_active_class }: Props) => {
-    // const { asPath } = useRouter()
     const location = useLocation();
     return (
         <li className={` mb-1`}>

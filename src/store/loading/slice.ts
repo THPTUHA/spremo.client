@@ -27,9 +27,7 @@ const loadingSlice = createSlice({
                 show_loading: action.payload.show_loading
             };
 
-            return {
-                ...state
-            }
+            return state
         }
     },
 })

@@ -1,6 +1,7 @@
-import LoadingAbsolute from "../loading";
+// import LoadingAbsolute from "../loading";
 import { ReactElement, useEffect, useState } from "react";
 import Startup from "../../Startup";
+import LoadingSmile from "../loading/LoadingSmile";
 
 
 
@@ -17,8 +18,7 @@ const AppWrapper = ({ children }: { children: ReactElement }) => {
 
 
     return (<>
-        {!isFullyLoaded && <LoadingAbsolute />}
-        {children}
+        {isFullyLoaded?children : <LoadingSmile/>}
     </>)
 }
 
