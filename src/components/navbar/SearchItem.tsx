@@ -7,6 +7,7 @@ import Fetch from "../../services/Fetch";
 import { Helper } from "../../services/Helper";
 import { Toast } from "../../services/Toast";
 import { RawUser } from "../../store/types";
+import Loading from "../loading/Loading";
 import LoadingNormal from '../loading/LoadingNormal';
 
 const SearchItem = ({ query}:{query ?:string})=>{
@@ -53,23 +54,32 @@ const SearchItem = ({ query}:{query ?:string})=>{
 
     return (
         <div className="w-full -mr-5">
-            <div  className='ml-5 flex items-center w-7/12 bg-white rounded justify-between'>
+            <div  className='ml-5 flex items-center w-7/12 bg-white rounded justify-between '
+                    style={{
+                        backgroundColor: "rgb(64,64,64)"
+                    }}    
+            >
                 <div className="flex items-center w-full">
-                <label htmlFor='search' className='cursor-pointer pl-3'><AiOutlineSearch className='w-6 h-6 text-black'/></label>
-                <input onKeyDown={onSubmit} value={search} type="text" onChange={(e)=>setSearch(e.target.value)}
-                    className="text-black pl-2 h-9 focus:outline-none w-full pb-1" id="search" placeholder='Search Spremo'/>
+                <label htmlFor='search' className='cursor-pointer pl-3'><AiOutlineSearch className='w-6 h-6 text-white'/></label>
+                <input onKeyDown={onSubmit} value={search} type="text" 
+                        onChange={(e)=>setSearch(e.target.value)}
+                        className="text-white pl-2 h-9 focus:outline-none w-full pb-1" 
+                        id="search" placeholder='Search Spremo'
+                        style={{
+                            backgroundColor: "rgb(64,64,64)"
+                        }}    
+                />
                 </div>
-            {   hints.loading && <div className="w-1/6"><LoadingNormal/></div>}
+            {   hints.loading && <div className="w-1/6"><Loading/></div>}
             </div>
-            <div className="fixed z-50 ml-5 bg-red-500 w-1/3">
             {
-                !hints.loading  && hints.value && (
-                    <div onClick={()=>{setSearch("")}}>
+                !hints.loading  && hints.value &&hints.value.tags.length > 0 &&(
+                    <div onClick={()=>{setSearch("")}} className="fixed z-50 ml-5 py-2  px-2 w-1/3  bg-gray-700 text-white">
                         <div>
                             {hints.value.tags.length > 0 && <div className="font-medium text-lg">Tag</div>}
                             {
                                 hints.value.tags.map((tag, index)=>(
-                                    <div key={index} className="hover:bg-gray-500">
+                                    <div key={index} className="hover:bg-gray-300">
                                         <Link to={`/search/${tag}`}>
                                             <div>#{tag}</div>
                                         </Link>
@@ -77,7 +87,7 @@ const SearchItem = ({ query}:{query ?:string})=>{
                                 ))
                             }
                         </div>
-                        <div className="w-full">
+                        <div className="w-full mt-2">
                             {hints.value.users.length > 0 &&  <div className="font-medium text-lg">User</div>}
                             {
                                 hints.value.users.map((user)=>(
@@ -95,7 +105,6 @@ const SearchItem = ({ query}:{query ?:string})=>{
                     </div>
                 )
             }
-            </div>
         </div>
     )
 }

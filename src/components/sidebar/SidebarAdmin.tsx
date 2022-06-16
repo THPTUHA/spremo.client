@@ -12,7 +12,7 @@ const SidebarAdmin = ({ openSidebar, closeSidebar }: { openSidebar: boolean, clo
     return (<>
         {openSidebar ? <div onClick={() => closeSidebar()}
             className="fixed lg:none z-10 h-screen w-screen bg-gray-900 opacity-50"></div> : <></>}
-        <div className="absolute top-0 left-0 h-screen" >
+        <div className="absolute top-0 left-0 h-screen " >
             <CSSTransition
                 in={openSidebar}
                 timeout={300}
@@ -28,7 +28,7 @@ const SidebarAdmin = ({ openSidebar, closeSidebar }: { openSidebar: boolean, clo
 
                             {
                                 me && me.role == ROLES.ADMIN && (
-                                    <AutoActiveLink href={`/admin/users`}>
+                                    <AutoActiveLink href={`/admin/users/all`}>
                                         <>
                                             <span className="mr-1.5"><FiUsers/></span>
                                             <span className="">Users</span>
@@ -36,7 +36,7 @@ const SidebarAdmin = ({ openSidebar, closeSidebar }: { openSidebar: boolean, clo
                                     </AutoActiveLink>
                                 )
                             }
-                            <AutoActiveLink href='/admin/blogs'>
+                            <AutoActiveLink href='/admin/blogs/all'>
                                 <>
                                     <span className="mr-1.5"><BsFillFileEarmarkPostFill/></span>
                                     <span className="">Blogs</span>

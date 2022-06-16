@@ -1,4 +1,4 @@
-import { RawPodcast, RawPodcastChallenge, RawRecordChallengeUser, RawTeamChallenge, RawUser } from "./types";
+import { RawUser } from "./types";
 
 export interface AvatarProps {
     name: string,
@@ -44,49 +44,4 @@ export interface RankRecord {
     last_update: number,
     rank: number,
     status: number
-}
-
-export interface UserRecordResponse {
-    user_record: RawRecordChallengeUser,
-    podcasts: RawPodcast[],
-    podcast_challenges: RawPodcastChallenge[],
-    rank: number,
-    member_number: number,
-    user: RawUser,
-    code: number,
-    message: string
-}
-
-export interface TeamResponse {
-    team: RawTeamChallenge,
-    users: RawUser[],
-    record_challenge_users: RawRecordChallengeUser[],
-    rank: number,
-    team_number: number,
-    code: number,
-    message: string
-}
-
-
-export interface PodcastChallengeListen {
-    podcast: RawPodcast,
-    podcast_challenge?: RawPodcastChallenge,
-}
-
-export interface ListUserResponse {
-    users: RawUser[],
-    record_challenge_users: RawRecordChallengeUser[],
-    member_number: number,
-    is_register: boolean,
-    code: number,
-    message: string
-}
-
-export interface ListTeamResponse {
-    teams: RawTeamChallenge[],
-    team_number: number,
-    max_member: number,
-    is_register: boolean,
-    code: number,
-    message: string
 }

@@ -7,7 +7,7 @@ import { BiMessageAltDetail} from 'react-icons/bi';
 import {MdNotifications, MdOutlineExplore} from 'react-icons/md';
 import { BsPencil} from 'react-icons/bs';
 import { EmotionHook } from "../../store/emotion/hooks";
-import {EMOTION_IDS, FIREBASE_CONFIG} from "../../Constants";
+import {EMOTION_IDS, ROLES} from "../../Constants";
 import { EmtionFunctions } from "../../store/emotion/functions";
 import { IoMdNotificationsOutline } from 'react-icons/io';
 import { useState } from 'react';
@@ -24,6 +24,9 @@ import { ChatFunctions } from '../../store/chat/funtions';
 import ChatList from '../chat/ChatList';
 import { MdHome} from 'react-icons/md';
 import { StyleHook } from '../../store/style/hooks';
+import { StyleFunctions } from '../../store/style/functions';
+import { SettingFunctions } from '../../store/setting/function';
+import Setting from '../setting/Setting';
 
 const getEmotion = (status: number)=>{
     switch(status){
@@ -114,16 +117,19 @@ const Navbar = ()=>{
     const style = StyleHook.useStyle();
 
     useAsync(async()=>{
-        if(me){
+        if(me && me.role != ROLES.DEVELOPER){
             await EmtionFunctions.init();
         }
     },[me])
+
+    useAsync(async()=>{
+        if(emotion.id){
+            await SettingFunctions.init(emotion.id);
+        }
+    },[emotion.id])
     
     const [open_notifi,setOpenNotifi] = useState(false);
     const [open_chat,setOpenChat] = useState(false);
-
-    const socket = SocketHook.useSocket();
-
 
     const [page, setPage] = useState(1);
     const page_size = 10;
@@ -146,7 +152,7 @@ const Navbar = ()=>{
     },[open_notifi])
 
     return (
-        <div className="bg-transparent fixed w-full mt-3 z-50" style={{color:style.text_color}}>
+        <div className="bg-black fixed w-full z-50 top-0 py-2 border-b-[1px] border-gray-700" style={{color:style.text_color}}>
             <div className='flex justify-between relative'>
                 <div className="flex ml-8 w-7/12 items-center">
                     <Link to="/">
@@ -157,8 +163,10 @@ const Navbar = ()=>{
                 {
                     me ? (
                         <div className='flex items-center justify-between '>
+                            <Setting is_on_navbar={true}/>
                             <div onClick={()=>EmtionFunctions.openModal()} className="cursor-pointer mr-2">
-                                {getEmotion(emotion.id)}
+                                {me.role != ROLES.DEVELOPER && getEmotion(emotion.id)}
+                                {me.role == ROLES.DEVELOPER && <img src={me.avatar} className="w-12 h-12 rounded"/>}
                                 <svg xmlns="http://www.w3.org/2000/svg" style={{display: "none"}}>
                                     <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 7 4" id="eye">
                                         <path d="M1,1 C1.83333333,2.16666667 2.66666667,2.75 3.5,2.75 C4.33333333,2.75 5.16666667,2.16666667 6,1"></path>
@@ -188,7 +196,7 @@ const Navbar = ()=>{
                                 }
                             </div>
                            
-                           <Link to="/explore/trending">
+                           <Link to={me?"/explore/recommended-for-you": "/explore/trending"}>
                                <div className={`${location.pathname === "/explore/trending" ? '' : 'opacity-50 '} mr-2`} >
                                     <MdOutlineExplore className='w-8 h-auto'/>
                                </div>
@@ -203,6 +211,15 @@ const Navbar = ()=>{
                                         {unseen }</span>}
                                 </a>
                             </div>
+                            <Link
+                                to={`/new`}
+                                state= {{ background: location }}
+                                onClick={()=>{StyleFunctions.setLocaion(location)}}
+                            >
+                                <button className='bg-blue-400 flex justify-center rounded w-14 px-2 py-2 mr-5'>
+                                    <BsPencil className='w-6 h-auto'/>
+                                </button>
+                            </Link>
                         </div>
                         ) 
                         :(
@@ -227,7 +244,6 @@ const Navbar = ()=>{
                         </div>
                     )
                 }
-                {me && <button className='fixed right-10 top-20'><BsPencil className='w-10 h-auto'/></button>}
                 
             </div>
             {

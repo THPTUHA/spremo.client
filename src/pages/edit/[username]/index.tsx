@@ -1,13 +1,16 @@
 import { useParams } from "react-router-dom"
 import { useAsync } from "react-use";
 import Draw from "../../../components/draw/Draw";
+import MusicEditor from "../../../components/music/MusicEditor";
+import NoteEditor from "../../../components/note/NoteEditor";
 import TextEditor from "../../../components/text.editor/TextEditor"
+import VoiceRecorderEdit from "../../../components/voice.recorder/VoiceRecorderEdit";
 import { BLOG_TYPES, Code } from "../../../Constants";
 import Fetch from "../../../services/Fetch";
 import { Helper } from "../../../services/Helper";
 import { Toast } from "../../../services/Toast";
 import {DrawFunctions}  from "../../../store/draw/functions";
-import {VoiceRecoderFunction} from "../../../store/voice.recorder/functions";
+import { RawBlog } from "../../../store/types";
 
 const getContent = (blog: any)=>{
     switch(blog.type){
@@ -19,6 +22,12 @@ const getContent = (blog: any)=>{
                     <Draw/>
                 </div>
             )
+        case BLOG_TYPES.MUSIC:
+            return <MusicEditor blog={blog}/>
+        case BLOG_TYPES.NOTE:
+            return <NoteEditor blog={blog}/>
+        case BLOG_TYPES.AUDIO:
+            return <VoiceRecorderEdit blog={blog}/>
     }
 }
 
@@ -31,15 +40,17 @@ const EditBlog = ()=>{
             const url = q.public ?"/api/blog/edit" :"/api/me/blog.get";
 
             try {
-                const res = await Fetch.postJsonWithAccessToken<{code:number, message: string, blog: any}>(url,{
+                const res = await Fetch.postJsonWithAccessToken<{code:number, message: string, blog: RawBlog}>(url,{
                     id: id
                 })
                 if(res.data){
                     const {code, message, blog} = res.data;
                     if(code == Code.SUCCESS){
+                        blog.is_edit = true; 
+                        console.log("BLOG---",blog);
                         if(blog.type == BLOG_TYPES.DRAW){
-                            DrawFunctions.init(blog);
-                        } 
+                            await DrawFunctions.init(blog);
+                        }
                         return {
                             blog: blog
                         }
@@ -47,6 +58,7 @@ const EditBlog = ()=>{
                     Toast.error(message);
                 }
             } catch (error) {
+                console.log(error);
                 Toast.error("Emotional Damage!");
             }
         }
@@ -59,6 +71,7 @@ const EditBlog = ()=>{
                     <>{getContent(state.value.blog)}</>
             }
         </div>
+        
     )
 }
 

@@ -5,6 +5,10 @@ const setLoading = (value: boolean, progress: number, show_loading = true, store
     return storex.dispatch(LoadActions.loading({value, progress, show_loading: show_loading}));
 } 
 
+const reloadTopUser = ( storex= store)=>{
+    return storex.dispatch(LoadActions.reloadTopUser());
+}
 export const LoadingFunctions = {
-    setLoading
+    setLoading,
+    reloadTopUser
 };

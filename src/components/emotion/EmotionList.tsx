@@ -3,7 +3,6 @@ import Modal from "react-responsive-modal";
 import { EmtionFunctions } from "../../store/emotion/functions";
 import { EmotionHook } from "../../store/emotion/hooks";
 import { MeHook } from "../../store/me/hooks";
-import {BiAngry, BiHappyBeaming, BiSad} from 'react-icons/bi';
 import { EMOTIONS, EMOTION_IDS, ROLES } from "../../Constants";
 import Emotion from "./Emotion";
 
@@ -24,6 +23,7 @@ const EmotionList = ()=>{
             e.preventDefault();
         }));
     },[])
+
     return (
        <>
         {
@@ -32,19 +32,31 @@ const EmotionList = ()=>{
                     showCloseIcon = {false}
                     center
                     classNames={{
-                        modal: "rounded-lg overflow-x-hidden w-2/5 relative"
+                        modal: "rounded-lg overflow-x-hidden w-2/5 relative",
+                    }}
+
+                    styles={{
+                        modal: {
+                            backgroundColor: "transparent",
+                            boxShadow:"none"
+                        }
                     }}
                     onClose={()=>{}} open={emotion.is_change}>
                     <>
-                        {emotion.is_change && (
-                            <div className="flex justify-around">
-                                {
-                                    EMOTIONS.map(emotion => <div key={emotion.id} onClick={()=>{EmtionFunctions.set(emotion.id)}}>
-                                        <Emotion id={emotion.id} />
-                                    </div>)
-                                }
+                        <div className="flex flex-col items-center">
+                            <div className="text-3xl font-medium text-white">How are you feeling ?</div>
+                            <div className="w-full mt-5">
+                                {emotion.is_change && (
+                                    <div className="flex justify-around">
+                                        {
+                                            EMOTIONS.map(emotion => <div key={emotion.id} onClick={()=>{EmtionFunctions.set(emotion.id)}}>
+                                                <Emotion id={emotion.id} />
+                                            </div>)
+                                        }
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </>
                 </Modal>
             )

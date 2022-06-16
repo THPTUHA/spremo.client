@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {  RegularPolygon, Transformer } from "react-konva";
-import {  TriangleProps } from "../../../interface";
+import { TriangleProps } from "../../../store/types";
 
 const TriangleShape = ({ shape_props, is_selected, onSelect, onChange }:{shape_props: TriangleProps,is_selected: boolean,onSelect:()=>void,onChange:(attr: TriangleProps)=>void}) => {
     const shape_ref = useRef(null);

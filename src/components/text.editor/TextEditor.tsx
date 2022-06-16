@@ -38,6 +38,9 @@ import InlineCode from '@editorjs/inline-code'
 import SimpleImage from '@editorjs/simple-image'
 import Fetch from "../../services/Fetch";
 import { useNavigate } from "react-router-dom";
+import Modal from "react-responsive-modal";
+import TagEdit from "../blog/TagEdit";
+import { RawBlog } from "../../store/types";
 
 const ReactEditorJS = createReactEditorJS();
 
@@ -104,19 +107,30 @@ const TextEditor = ({blog}:{blog: any})=>{
     const navigate = useNavigate()
     const me = MeHook.useMe();
 
+    const [open_save, setOpenSave] = useState(false);
+
     const handleInitialize = useCallback((instance) => {
         editorCore.current = instance;
     }, [])
 
-    const handleSave =  useCallback(async() => {
+    const handleSave =  useCallback(async(external: any) => {
         const saved_data = await editorCore.current.save();
+
+        let data = {
+            data: JSON.stringify(saved_data),
+            id: blog.id,
+            type: BLOG_TYPES.COMBINE
+        }
+
+        if(external){
+            data = {
+                ...data,
+                ...external
+            }
+        }
+        
         if(blog.id){
-            const res  = await Fetch.postJsonWithAccessToken<{code: number, message: string}>('/api/me/blog.update',{
-                data: JSON.stringify(saved_data),
-                emotion_id: emotion.id,
-                id: blog.id,
-                type: BLOG_TYPES.COMBINE
-            });
+            const res  = await Fetch.postJsonWithAccessToken<{code: number, message: string}>('/api/me/blog.update',data);
     
             if(res.data.code == Code.SUCCESS){
                 Toast.success(res.data.message);
@@ -126,11 +140,8 @@ const TextEditor = ({blog}:{blog: any})=>{
             }
 
         }else{
-            const res  = await Fetch.postJsonWithAccessToken<{code: number, message: string}>('/api/me/blog.create',{
-                data: JSON.stringify(saved_data),
-                emotion_id: emotion.id,
-                type: BLOG_TYPES.COMBINE
-            });
+            console.log("CREATE----");
+            const res  = await Fetch.postJsonWithAccessToken<{code: number, message: string}>('/api/me/blog.create',data);
     
             if(res.data.code == Code.SUCCESS){
                 Toast.success(res.data.message);
@@ -143,16 +154,42 @@ const TextEditor = ({blog}:{blog: any})=>{
     
     return (
     <div className = "mt-10 w-full flex justify-center mb-20">
-       <div className="bg-gray-500 w-2/3 text-white">
+       <div className="bg-gray-500 w-2/3 text-black">
             <ReactEditorJS 
                 defaultValue={blog.data}
-                onInitialize={handleInitialize} holder="custom"  tools={TOOLS}>
+                onInitialize={handleInitialize} 
+                holder="custom"  
+                tools={TOOLS}
+                inlineToolbar={true}
+                >
                 <div id="custom"/>
             </ReactEditorJS>
-            <button onClick={handleSave} className="bg-green-500 text-white fixed px-3 z-40 top-20 py-1 rounded font-medium left-8">
+            <button onClick={()=>{setOpenSave(true)}} className="bg-green-500 text-white fixed px-3 z-40 top-20 py-1 rounded font-medium left-8">
                 Save
             </button>
        </div>
+       <Modal
+            showCloseIcon = {false}
+            classNames={{
+                modal: "rounded-lg overflow-x-hidden w-1/2 relative"
+            }}
+            styles={
+                {
+                    modal: {
+                        backgroundColor: 'black'
+                    }
+                }
+            }
+            center
+            onClose={()=>{setOpenSave(false)}} open={open_save}>
+             <div className="w-full">
+                <TagEdit 
+                    blog={blog} 
+                    handleSaveBlog={handleSave}
+                    is_edit={true}
+                    />    
+            </div>
+        </Modal>
     </div>)
 }
 

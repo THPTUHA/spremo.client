@@ -10,7 +10,15 @@ const useLoading = ()=>{
     });
 };
 
+const useReloadTopUser = ()=>{
+    return useSelector((state)=>{
+        return {
+           reload_top_user : state.loading.reload_top_user
+        }
+    });
+}
 
 export const LoadingHook = {
-    useLoading
+    useLoading,
+    useReloadTopUser
 };

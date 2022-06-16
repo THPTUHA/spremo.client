@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom';
 import "./styles/globals.css";
 import "./styles/styles.css";
 import "./styles/emotion.css";
+import './styles/loading.css';
+import './styles/music.css';
+import "plyr-react/dist/plyr.css";
 
 import 'react-quill/dist/quill.snow.css';
 import 'react-responsive-modal/styles.css';
@@ -10,7 +13,6 @@ import 'react-responsive-modal/styles.css';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import 'react-perfect-scrollbar/dist/css/styles.css';
-
 import 'react-toastify/dist/ReactToastify.css';
 import App from './App';
 import { ToastContainer } from 'react-toastify'

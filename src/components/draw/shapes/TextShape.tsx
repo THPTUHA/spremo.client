@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Text, Transformer } from "react-konva";
-import { TextProps } from "../../../interface";
+import { TextProps } from "../../../store/types";
 
 const TextShape = ({ shape_props, is_selected, onSelect, onChange ,handleEditText}:{shape_props: TextProps,is_selected: boolean,onSelect:()=>void,onChange:(attr: TextProps)=>void,handleEditText:()=>void}) => {
     const shape_ref = useRef(null);

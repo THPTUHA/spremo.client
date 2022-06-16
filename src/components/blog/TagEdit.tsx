@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import Modal from "react-responsive-modal";
 import { Link } from "react-router-dom";
 import { useAsync } from "react-use";
-import { Code, DRAFT, FRIEND, FRIEND_SPECIFIC, PRIVATE, PUBLIC, ROLES } from "../../Constants";
+import { BLOG_TYPES, Code, DRAFT, EMOTIONS, FRIEND, FRIEND_SPECIFIC, PRIVATE, PUBLIC, ROLES } from "../../Constants";
 import Fetch from "../../services/Fetch";
 import { Toast } from "../../services/Toast";
 import { MeHook } from "../../store/me/hooks";
 import { StyleFunctions } from "../../store/style/functions";
 import { StyleHook } from "../../store/style/hooks";
-import { RawUser } from "../../store/types";
+import { RawBlog, RawUser } from "../../store/types";
+import ShareBlog from "../actionBlog/ShareBlog";
 import OutsideHoverDetect from '../ui/OutsideHoverDetect';
 
 const DevStatusOptions = [
@@ -23,24 +24,35 @@ const StatusOptions = [
     {  label: "Friend specific", value: FRIEND_SPECIFIC},
 ]
 
-const TagEdit =  ({blog}:{blog: any})=>{
+const getColorTagEmotion = (tag: string)=>{
+    for(const emotion of EMOTIONS){
+        if(tag.length && tag.trim() && tag.toLowerCase() == emotion.lable){
+            return  emotion.color;
+        }
+    }
+}
+const TagEdit =  ({blog, handleSaveBlog,handleCancelBlog, is_edit}:{blog: RawBlog, handleSaveBlog?: any, is_edit?: boolean,handleCancelBlog?:any})=>{
     const me = MeHook.useMe();
     const style = StyleHook.useStyle();
     const [open_friend, setOpenFriend] = useState(false);
     const [status,setStatus] = useState(blog.status); 
     const [tag,setTag] = useState("");
-    const [tags, setTags] = useState<string[]>(blog.tags);
-    const [editing, setEditing] = useState(false);
-    const [friend_q, setFriendQ] = useState("");
-    const [friend_ids , setFriendIds] = useState<number[]>([]);
-    const [tag_hover, setTagHover] = useState(-1);
+    const [tags, setTags] = useState<string[]>(blog.tags ? [...blog.tags]: []);
+    const [editing, setEditing] = useState(is_edit? true:false);
 
     const handleSave = async () => {
         try {
+            if(handleSaveBlog){
+                await handleSaveBlog({
+                    status: status,
+                    tags: JSON.stringify(tags),
+                });
+                return;
+            }
             const res = await Fetch.postWithAccessToken<{code: number,message: string}>("/api/me/blog.update",{
                 id: blog.id,
                 status: status,
-                tags: JSON.stringify(tags)
+                tags: JSON.stringify(tags),
             });
 
             if(res.data){
@@ -65,58 +77,45 @@ const TagEdit =  ({blog}:{blog: any})=>{
         }
     },[status])
 
-    const friends = useAsync(async()=>{
-        if(!friend_q) return;
-        try {
-            const res = await Fetch.postJsonWithAccessToken<{code: number,message: string,users: RawUser[]}>("/api/me/friend.list",{
-                q: friend_q
-            });
 
-            if(res.data){
-                const {code,message, users} = res.data;
-                if(code == Code.SUCCESS){
-                    return {
-                        users: users
-                    }
-                }else{
-                    Toast.error(message);
-                }
-            }
-        } catch (error) {
-            Toast.error("Emotional Damage!");
-        }
-        return{
-            users: []
-        }
-    },[friend_q])
-
-    const handleUser = (user_id: number) => {
-        if(friend_ids.includes(user_id)){
-            setFriendIds(friend_ids.filter(id => id!=user_id))
-        }else{
-            setFriendIds([...friend_ids, user_id])
+    const handleCancel = ()=>{
+        setEditing(false);
+        if(handleCancelBlog){
+            handleCancelBlog();
         }
     }
+
 
     const handleDeleteTag = (index: number) =>{
         tags.splice(index,1)
         setTags([...tags]);
     }
     
+    const editTagEmotion = (name: string)=>{
+        if(tags.includes(name)){
+            setTags(tags.filter(tag => tag!= name))
+        }else{
+            tags.push(name);
+            setTags([...tags]);
+        }
+    }
     return (
-        <div>
+        <div className="mb-3 text-white">
+            <div className="flex justify-around w-full">
+            </div>
             {
                 !editing 
                     ?(
                         <div className='text-white ml-5 mt-3'>
                             {
-                                me && blog.user && me.id == blog.user.id && blog.is_edit &&
-                                <div onClick={()=>{setEditing(true)}} className="cursor-pointer">Edit</div>
+                                me &&  blog.is_edit &&
+                                <div onClick={()=>{setEditing(true)}} className="cursor-pointer">Edit Tags</div>
                             }
                             <div className="flex flex-wrap">
                                 {
                                     tags.map((tag,index) =>(
-                                        <span key={index} className='text-white hover:bg-green-500 rounded px-2'>
+                                        <span key={index} 
+                                            className={`hover:bg-green-500 rounded px-2 underline italic border-${getColorTagEmotion(tag)}`}>
                                             <Link to={`/search/${tag}`}>
                                                 <div>#{tag}</div>
                                             </Link>
@@ -128,16 +127,30 @@ const TagEdit =  ({blog}:{blog: any})=>{
                     )
                     :(
                         <div className='mt-4 text-white w-full' >
+                            <div className="flex justify-around mb-3">
+                            {
+                                EMOTIONS.map(emotion=>{
+                                    return (
+                                        <div key={emotion.id} 
+                                            className={`${tags.includes(emotion.lable) ? 'border-[4px] ':'border-[2px] '} ${emotion.border_color} rounded w-16 text-center cursor-pointer`}
+                                            onClick={()=>{editTagEmotion(emotion.lable)}}>
+                                            #{emotion.lable}
+                                        </div>
+                                    )
+                                })
+                            }
+                            </div>
                             <div className='flex flex-wrap w-full'>
                                 <div className='ml-3 flex flex-wrap  w-full mr-3'>
                                     {
                                         tags.map((tag,index) =>(
-                                            <span key={index} onClick={()=>{handleDeleteTag(index)}} className='hover:bg-red-500  rounded px-2 cursor-pointer'>
+                                            <span key={index} onClick={()=>{handleDeleteTag(index)}} className='hover:bg-red-500  rounded px-2 cursor-pointer underline italic'>
                                                #{tag}
                                             </span>
                                         ))
                                     }
                                 </div>
+   
                             <input type="text" className='focus:outline-none border-none ml-3' 
                                 placeholder="#tags"
                                 style={{backgroundColor: style.bg_blog_color}} value={tag} 
@@ -170,40 +183,12 @@ const TagEdit =  ({blog}:{blog: any})=>{
                                         ))
                                     }
                                 </select>
+                                {open_friend &&  <ShareBlog blog={blog}/>}
                             </div>
-                            <div className="ml-4">
+                            <div className="ml-4 flex justify-around"> 
                                 <button onClick={handleSave} className="text-white font-medium">Save</button>
+                                <button onClick={handleCancel} className="text-white font-medium">Cancel</button>
                             </div>
-                            <Modal
-                                classNames={{
-                                    modal: "rounded-lg overflow-x-hidden w-2/5 relative"
-                                }}
-
-                                onClose={()=>{setOpenFriend(false)}} open={open_friend}>
-                                <>
-                                {
-                                    open_friend && (
-                                        <div>
-                                            <input type="text" value={friend_q} onChange={(e)=>{setFriendQ(e.target.value)}}/>
-                                            {
-                                                friends.loading ? <div>Loading...</div> : friends.value &&
-                                                    <div>
-                                                        {
-                                                            friends.value.users.map((user)=>(
-                                                                <div key={user.id} onClick={()=>{handleUser(user.id)}}>
-                                                                    <input type="checkbox" checked={friend_ids.includes(user.id)} onChange={()=>{}}/>
-                                                                    <img src={user.avatar} className="w-10 h-auto"/>
-                                                                    <div>{user.username}</div>
-                                                                </div>
-                                                            ))
-                                                        }
-                                                    </div>
-                                            }
-                                        </div>
-                                    )
-                                }
-                                </>
-                            </Modal>
                         </div>
                     )
 

@@ -29,6 +29,7 @@ const init = (user: RawUser,storex = store) =>{
     return storex.dispatch(MeSlice.loadProfile({user: user}));
 }
 
+
 export const MeFunctions = {
     loadProfile,
     logout,

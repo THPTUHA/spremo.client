@@ -1,10 +1,6 @@
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { VOICE_RECORD_STATUS } from "../../../Constants";
-import Fetch from "../../../services/Fetch";
-import { Helper } from "../../../services/Helper";
-import { Code } from '../../../Constants';
-import { Toast } from "../../../services/Toast";
-import { useAsync } from "react-use";
+import { RawBlog, RawVoiceRecorder } from "../../../store/types";
 import { voiceRecoderHook } from "../../../store/voice.recorder/hooks";
 
 type VoiceRecord = {
@@ -13,6 +9,7 @@ type VoiceRecord = {
     media_stream: MediaStream | null;
     media_recorder: MediaRecorder | null;
     audio: string | null,
+    blob: Blob | null
 };
 
 type Interval = null | number | ReturnType<typeof setInterval>;
@@ -27,6 +24,7 @@ const initialState: VoiceRecord = {
     media_stream: null,
     media_recorder: null,
     audio: null,
+    blob: null
 };
 
 
@@ -70,23 +68,15 @@ function saveRecording(recorder: any) {
     if (recorder.state !== "inactive") recorder.stop();
 }
  
-function useVoiceRecord(){
-    const voice = voiceRecoderHook.useAll();
-    const [recorder_state , setRecorderState] = useState<VoiceRecord>(initialState);
-
-    const [save_status, setSaveStatus] = useState(0);
-    const [url_record,setUrlRecord ] = useState("");
-
-    useEffect(()=>{
-        setRecorderState({...initialState, audio: voice.url});
-    },[voice])
-
-
-    const handleSave = ()=>{
-        if(!recorder_state.audio) return;
-        console.log("CLICK");
-        setSaveStatus(VOICE_RECORD_STATUS.WAIT_SAVE);
-    }
+function useVoiceRecord(blog: RawBlog){
+    const [recorder_state , setRecorderState] = useState<VoiceRecord>({
+        recording_time: 0,
+        recoding_status: VOICE_RECORD_STATUS.INIT,
+        media_stream: null,
+        media_recorder: null,
+        audio: (blog.data as RawVoiceRecorder).url || null,
+        blob: null
+    });
 
     useEffect(()=>{
         let recording_interval: Interval = null;
@@ -142,6 +132,7 @@ function useVoiceRecord(){
                   return {
                       ...prevState,
                       recoding_status: VOICE_RECORD_STATUS.PAUSE,
+                      blob: blob
                     };
                 }
                 else {
@@ -154,52 +145,16 @@ function useVoiceRecord(){
           recorder.onstop = async() => {
             const blob = new Blob(chunks, { type:"audio/mp3" });
             chunks = [];
-            const audio  =  window.URL.createObjectURL(blob);
-            console.log("AUDIO---",audio);
-            // const reader = new FileReader();
-            // reader.readAsDataURL( Helper.blobToFile(blob,"audio"));
-            // console.log("PRE DATA",reader.result);
-            // const reader = new FileReader();
-            // reader.readAsDataURL(blob);
-            // reader.onloadend = async() => {
-            //     const res = await Fetch.postWithAccessToken<{code: number }>("/api/voice.record/create", {
-            //         audio : reader.result
-            //      })
-                
-            //      console.log("DATA AUDIO",res.data);
-            // };
-            new Promise(()=>{
-                console.log("RECORDER_STATE", is_temporary_save);
-                if(is_temporary_save){
-                    setUrlRecord("loading");
-                    Fetch.postWithAccessToken<{code: number ,url: string,message: string}>("/api/upload/audio", {
-                        audio : Helper.blobToFile(blob,"audio")
-                    }).then((res)=>{
-                        //@ts-ignore
-                        const {code, url,message} = res.data
-                        if(code == Code.SUCCESS){
-                            setUrlRecord(url);
-                        }else{
-                            Toast.error(message)
-                        }
-                        is_temporary_save = false;
-                    }).catch((error)=>{
-                        console.log(error);
-                        Toast.error("ERROR!!");
-                        is_temporary_save = false;
-                    })
-                }
-            })
 
             setRecorderState((prevState) => {
               if (prevState.media_recorder){
                 return {
                     ...initialState,
-                    audio: window.URL.createObjectURL(blob)
+                    audio: window.URL.createObjectURL(blob),
+                    blob: blob
                   };
               }
               else {
-                console.log("CANCEL...");
                 return initialState;
               }
             });
@@ -213,17 +168,11 @@ function useVoiceRecord(){
 
     return {
         recorder_state,
-        save_status,
-        url_init: voice.url,
-        is_create: voice.is_create,
-        url_record,
-        setSaveStatus,
         startRecording: () => startRecording(setRecorderState),
-        cancelRecording: () => {setRecorderState(initialState); setUrlRecord("")},
+        cancelRecording: () => {setRecorderState(initialState)},
         saveRecording: () => saveRecording(recorder_state.media_recorder),
         pauseRecording: () => pauseRecording(recorder_state.media_recorder),
         continueRecording: () => continueRecording(setRecorderState),
-        handleSave: ()=> handleSave()
     }
 }
 

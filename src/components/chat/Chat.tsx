@@ -10,6 +10,7 @@ import { SocketHook } from "../../store/socket/hooks";
 import { RawUser } from "../../store/types";
 import PerfectScrollbar from 'react-perfect-scrollbar'
 import { StyleHook } from "../../store/style/hooks";
+import { AiOutlineClose } from "react-icons/ai";
 
 const Chat = ()=>{
     const me = MeHook.useMe();
@@ -72,12 +73,13 @@ const Chat = ()=>{
         <>
             {
                 is_open && (
-                    <div className ="fixed right-10 bottom-0 z-50 " 
+                    <div className ="fixed right-10 bottom-0 z-50 text-white" 
                     style={{minHeight:360, maxHeight:360, minWidth:300,
-                         backgroundColor: style.bg_blog_color,
-                         color: style.text_color}} >
+                         backgroundColor: style.bg_blog_color}} >
                         <div  style={{minHeight:200, minWidth:100}} >
-                            <div onClick={()=>{ChatFunctions.close()}}>Close</div>
+                            <div onClick={()=>{ChatFunctions.close()}} className="cursor-pointer w-full justify-end">
+                                <AiOutlineClose/>
+                            </div>
                             <div>
                                 {
                                     chat && me && user && <div>
@@ -96,16 +98,16 @@ const Chat = ()=>{
                                                         <div key={index}>
                                                             {
                                                                 message.user.id == me.id ? (
-                                                                    <div className="flex flex-col ml-20 mb-3">
+                                                                    <div className="flex flex-col w-full mb-3  items-end pr-3">
                                                                         <div className="text-[10px] font-medium " style={{marginLeft:120}}>{message.user.username}</div>
-                                                                        <div style={{minWidth:150, maxWidth:150}} className="bg-red-500 rounded-lg py-1 px-2">
+                                                                        <div style={{minWidth:150, maxWidth:150}} className="bg-blue-500 rounded-lg py-1 px-2">
                                                                             {message.content}
                                                                         </div>
                                                                     </div>
                                                                 ):(
                                                                     <div className="flex items-center ml-3 mb-3">
                                                                         <div className=" flex items-center">
-                                                                            <img src={message.user.avatar} className="w-6 rounded-full"/>
+                                                                            <img src={message.user.avatar} className="w-6 h-6 rounded-full"/>
                                                                         </div>
                                                                         <div className="flex flex-col ml-3">
                                                                             <div className="text-[10px] font-medium">{message.user.username}</div>

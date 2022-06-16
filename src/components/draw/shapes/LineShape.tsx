@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Line, Transformer } from "react-konva";
-import { LineProps } from "../../../interface";
+import { LineProps } from "../../../store/types";
 
 const LineShape = ({ shape_props, is_selected, onSelect, onChange }:{shape_props: LineProps,is_selected: boolean,onSelect:()=>void,onChange:(attr: LineProps)=>void}) => {
     const shape_ref = useRef(null);

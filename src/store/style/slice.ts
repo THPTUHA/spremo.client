@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { BG_COLOR_DEFAULT, EMOTION_IDS, TEXT_COLOR_DEFAULT, TEXT_FONT_DEFAULT ,STYLE_ANGRY, STYLE_HAPPY, STYLE_OK, STYLE_GOOD, STYLE_SAD} from "../../Constants";
+import { BG_COLOR_DEFAULT, EMOTION_IDS, TEXT_COLOR_DEFAULT, TEXT_FONT_DEFAULT ,STYLE_ANGRY, STYLE_HAPPY, STYLE_OK, STYLE_GOOD, STYLE_SAD, BLOG_LIST_LAYOUT} from "../../Constants";
 import { RawUser } from "../types";
 
 type State = {
@@ -11,7 +11,9 @@ type State = {
     draw_tool_color: string,
     voice_tool_color: string,
     layout: number,
-    reset: boolean
+    reset: boolean,
+    blog_list_layout: number,
+    location: any
 }
 
 const initialState: State = {
@@ -23,7 +25,9 @@ const initialState: State = {
     draw_tool_color: "green",
     voice_tool_color: "red",
     layout: 0,
-    reset: false
+    reset: false,
+    blog_list_layout: BLOG_LIST_LAYOUT.VERTICAL,
+    location: undefined
 };
 
 const styleSlice = createSlice({
@@ -55,6 +59,20 @@ const styleSlice = createSlice({
             state = {
                 ...state,
                 reset: !state.reset
+            };
+            return state;
+        },
+        changeBlogListLayout(state, action: { payload: number}){
+            state = {
+                ...state,
+                blog_list_layout: action.payload
+            };
+            return state;
+        },
+        setLocaion(state, action: { payload: any}){
+            state = {
+                ...state,
+                location: action.payload
             };
             return state;
         },
@@ -99,8 +117,10 @@ export const {
     changeTextFont,
     changeTextColor,
     changeBGColor,
+    changeBlogListLayout,
     reset,
-    emotionChange
+    emotionChange,
+    setLocaion
 } = styleSlice.actions
 
 export default styleSlice.reducer

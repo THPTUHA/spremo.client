@@ -25,9 +25,6 @@ const useOutsideAlerter = (ref: any, outsideFunc: any) => {
 	}, [ref]);
 }
 
-/**
- * Component that alerts if you click outside of it
- */
 
 interface Props {
 	outsideFunc: () => void,

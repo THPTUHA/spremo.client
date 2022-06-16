@@ -1,3 +1,4 @@
+import { MdInsertEmoticon } from "react-icons/md"
 import { EMOTION_IDS } from "../../Constants"
 
 
@@ -91,12 +92,13 @@ const getEmotion = (id: number)=>{
         case EMOTION_IDS.SAD:
             return <Sad/>
     }
+    return <MdInsertEmoticon  className="w-8 h-auto"/>
 }
 const Emotion = ({id}: {id: number})=>{
     return (
         <>
-        <ul className="feedback">
-            {getEmotion(id)}
+            <ul className="feedback cursor-pointer">
+                {getEmotion(id)}
             </ul>
         </>
     )

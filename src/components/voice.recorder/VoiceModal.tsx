@@ -1,4 +1,4 @@
-import AudioPlay from "./Audio";
+import AudioPlay from "./AudioPlay";
 
 const VoiceModal = ({audio}:{audio: any})=>{
     return (

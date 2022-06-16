@@ -5,14 +5,16 @@ type State = {
     loading: boolean,
     status: string,
     progress: number,
-    show_loading: any
+    show_loading: any,
+    reload_top_user: boolean
 };
 
 const initialState: State = {
     loading: false,
     status: 'success',
     progress: 0,
-    show_loading: true
+    show_loading: true,
+    reload_top_user: false
 };
 
 const loadingSlice = createSlice({
@@ -28,9 +30,17 @@ const loadingSlice = createSlice({
             };
 
             return state
+        },
+        reloadTopUser: (state)=>{
+            state = {
+                ...state,
+                reload_top_user: !state.reload_top_user,
+            };
+
+            return state
         }
     },
 })
 
-export const { loading } = loadingSlice.actions
+export const { loading ,reloadTopUser} = loadingSlice.actions
 export default loadingSlice.reducer

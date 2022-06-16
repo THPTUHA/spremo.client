@@ -44,7 +44,7 @@ const mapUser = (users: RawUser[])=>{
 const mapMessage = (messages: IChat[][])=>{
     const mapping = {} as {[key: number]: IChat};
     for(let i = 0; i < messages.length ; ++i){
-        if(!mapping[messages[i][0].id]){
+        if(messages[i][0] && !mapping[messages[i][0].id]){
             mapping[messages[i][0].id]= messages[i][0]
         }
     }
@@ -73,16 +73,26 @@ const ChatItem = ({chat,user_map,message_map, me}:{chat: ChatRes, user_map: {[ke
     }
 
     return (
-        <div className="flex items-center ml-3 px-2 py-1 cursor-pointer" onClick={getChat}>
-            <img src={other.avatar} className="w-8 h-8 rounded-full"/>
-            <div className="flex flex-col ml-3">
-                <div className="font-medium">{other.username}</div>
-                <div className="flex ">
-                    <span className="font-medium text-sm">{me.id == message.user_id? "You": user_map[message.user_id].username}</span>
-                    <div className="ml-1 text-sm">{Helper.shortenText(message.message, 30)}</div>
+        <>
+           {
+               message && (
+                <div className="flex items-center ml-3 px-2 py-1 cursor-pointer" onClick={getChat}>
+                    <img src={other.avatar} className="w-8 h-8 rounded-full"/>
+                    <div className="flex flex-col ml-3">
+                        <div className="font-medium">{other.username}</div>
+                        <div className="flex ">
+                            <span className="font-medium text-sm">
+                                {(me.id == message.user_id)
+                                    ? "You"
+                                    :  user_map[message.user_id].username}
+                            </span>
+                            <div className="ml-1 text-sm">{Helper.shortenText(message.message, 30)}</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+               )
+           }
+        </>
     )
 }
 
@@ -99,6 +109,7 @@ const ChatList = ()=>{
             if(res.data){
                 const {code,message, chats , users , messages} = res.data;
                 if(code == Code.SUCCESS){
+                    console.log("Message",messages,chats);
                     setUserMap(mapUser(users));
                     setMessageMap(mapMessage(messages));
                     return {
@@ -109,6 +120,7 @@ const ChatList = ()=>{
                 }
             }
         } catch (error) {
+            console.log(error);
             Toast.error("Emotional Damage!");
         }
         return {

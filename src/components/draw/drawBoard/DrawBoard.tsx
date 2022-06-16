@@ -2,8 +2,7 @@ import { KonvaEventObject } from 'konva/lib/Node';
 import { KeyboardEventHandler, useEffect, useRef, useState,useLayoutEffect, MouseEventHandler } from 'react';
 import { Stage, Layer, Rect, Text, Circle, Line ,Transformer} from 'react-konva';
 import { Link } from 'react-router-dom';
-import { Code, COLORS, DRAFT, KEY_CODE,  ROLES,  SHAPES,  TOOLS } from '../../../Constants';
-import { CircleProps, LineProps, RectangleProps, TextProps, TriangleProps } from '../../../interface';
+import { BLOG_TYPES, Code, COLORS, DRAFT, KEY_CODE,  ROLES,  SHAPES,  TOOLS } from '../../../Constants';
 import { DrawToolFunctions } from '../../../store/draw.tool/functions';
 import { DrawToolHook } from '../../../store/draw.tool/hooks';
 import CircleShape from '../shapes/CircleShape';
@@ -18,6 +17,9 @@ import { useAsync } from 'react-use';
 import Fetch from '../../../services/Fetch';
 import { Toast } from '../../../services/Toast';
 import { MeHook } from '../../../store/me/hooks';
+import { RawBlog, RawDraw, TextProps } from '../../../store/types';
+import Modal from 'react-responsive-modal';
+import TagEdit from '../../blog/TagEdit';
 
 
 const getCursor = (tool_id: number)=>{
@@ -70,15 +72,15 @@ const SCROLL_Y= 400;
 const DRAW_X = 450;
 const DRAW_Y = 500;
 
-const DrawBoard = ()=>{
+const DrawBoard = ({blog}:{blog: RawBlog})=>{
     const me = MeHook.useMe();
     const TOOL = DrawToolHook.useTool();
     const COLOR = DrawToolHook.useColor();
     const SHAPE_STORES = DrawHook.useShape();
-    const ID = DrawHook.useDrawId();
 
     const [shapes,setShapes] = useState<any[]>([...SHAPE_STORES]);
-
+    const [image_url, setImageUrl] = useState("");
+    const [description, setDescription]= useState((blog.data as RawDraw).description);
     const stage_ref = useRef<any>(null);
     const layer_ref = useRef<any>(null);
     const is_drawing = useRef(false);
@@ -109,14 +111,16 @@ const DrawBoard = ()=>{
             DrawToolFunctions.setTool(TOOLS.SELECT);
         }
     }
-
     const saveDrawImg = async()=>{
-        const img_data = layer_ref.current.canvas.context.getImageData(DRAW_X*scale, DRAW_Y*scale, 1000, 500);
-        const image = await dataURLtoFile(imageDataToBase64(img_data),`spremo_draw${ID}`);
+        if(!image_url){
+            Toast.error("Image empty!!");
+            return "";
+        }
+        const image = await dataURLtoFile(image_url,`spremo_draw${blog.id}`);
         try {
             const res = await Fetch.postWithAccessToken<{code:number,message:string,url:string}>("/api/upload/img",{
                 image: image,
-                name: `spremo_draw_${ID}` 
+                name: `spremo_draw_${blog.id}` 
             });
             if(res.data){
                 const {code, message, url} = res.data;
@@ -129,6 +133,28 @@ const DrawBoard = ()=>{
             Toast.error("Emotional Damage!");
         }
         return "";
+    }
+
+    const handleSave = async(external: any)=>{
+        const url = await saveDrawImg();
+        let data = {
+            data: JSON.stringify({
+                shapes: SHAPE_STORES,
+                url: url,
+                description: description,
+            }),
+            id: blog.id,
+            type: BLOG_TYPES.DRAW
+        }
+
+        if(external){
+            data = {
+                ...data,
+                ...external
+            }
+        }
+        await DrawFunctions.update(data);
+        DrawToolFunctions.setTool(TOOLS.SELECT);
     }
     useEffect(()=>{
         if(stage_ref.current && layer_ref.current){
@@ -146,9 +172,9 @@ const DrawBoard = ()=>{
 
     useAsync(async()=>{
         if(TOOL.id == TOOLS.SAVE.id){
-            const url = await saveDrawImg();
-            await DrawFunctions.update(ID, SHAPE_STORES,url, me?.role==ROLES.DEVELOPER? DRAFT:0);
-            DrawToolFunctions.setTool(TOOLS.SELECT);
+            const img_data = layer_ref.current.canvas.context.getImageData(DRAW_X*scale, DRAW_Y*scale, 1000, 500);
+            const image_url = await imageDataToBase64(img_data);
+            setImageUrl(image_url);
         }
     },[TOOL])
 
@@ -433,11 +459,6 @@ const DrawBoard = ()=>{
         saveState();
     };
 
-    const handleDelete = ()=>{
-        if(TOOL.id == TOOLS.TEXT.id) return;
-        
-    }
-
     const handleKeyUp = (e:any) => {
         // if(e.keyCode == KEY_CODE.CTRL){
         //     is_ctrl_down.current = false;
@@ -452,7 +473,7 @@ const DrawBoard = ()=>{
 
     return (
         <div tabIndex={1} onKeyDown={handleKeyDown} onKeyUp={handleKeyUp} >
-        <PerfectScrollbar style={{height: window.innerHeight - 10, width:window.innerWidth }}
+        <PerfectScrollbar style={{height: window.innerHeight, width:window.innerWidth }}
             containerRef={(ref) => {scroll.current = ref;}}
         >
         <span contentEditable={true} className="absolute z-30 text-box"
@@ -471,7 +492,7 @@ const DrawBoard = ()=>{
             <Rect
                 width={2000}
                 height={1500}
-                fill="rgb(211,211,211,0.5)"
+                fill="rgb(0,0,0)"
                 onClick={()=>{setSelectShapeKey(-1)}}
             />
             <Rect
@@ -551,6 +572,31 @@ const DrawBoard = ()=>{
             </Layer>
         </Stage>
         </PerfectScrollbar>
+
+        <Modal
+            classNames={{
+                modal: "rounded-lg overflow-x-hidden w-2/5 relative"
+            }}
+            center
+            styles={{
+                modal:{
+                    backgroundColor: "black"
+                }
+            }}
+            onClose={()=>{}} open={TOOL.id == TOOLS.SAVE.id}>
+               <div >
+                    <input type="text" placeholder='Description...' value={description}
+                            className='w-full outline-none px-2 py-2 mb-3 bg-black text-white'
+                            onChange={(e)=>{setDescription(e.target.value)}}
+                    />
+                    {image_url && <img src={image_url}/>}
+                    <TagEdit blog = {blog}
+                        handleCancelBlog = {()=>{DrawToolFunctions.setTool(TOOLS.SELECT);}}
+                        handleSaveBlog = {handleSave}
+                        is_edit={true}
+                    />
+                </div>
+        </Modal>
         </div>
     )
 }

@@ -13,8 +13,7 @@ import { DrawTool } from "../../../interface";
 import { DrawToolFunctions  } from "../../../store/draw.tool/functions";
 import { DrawToolHook } from "../../../store/draw.tool/hooks";
 import { MeHook } from "../../../store/me/hooks";
-import OutsideClickDetect from "../../ui/OutsideClickDetect";
-
+import { RawBlog } from "../../../store/types";
 
 
 const ColorTrips = ()=>{
@@ -121,14 +120,14 @@ const ZoomOption = ({tool}:{tool: DrawTool})=>{
         </div>
     )
 }
-const Menu = ()=>{
+// const Menu = ()=>{
 
-    return (
-        <div className="z-50 flex ml-1">
-            <div><AiOutlineMenu className="w-8 h-auto"/></div>
-        </div>
-    )
-}
+//     return (
+//         <div className="z-50 flex ml-1">
+//             <div><AiOutlineMenu className="w-8 h-auto"/></div>
+//         </div>
+//     )
+// }
 const ToolMove = {...TOOLS.SELECT, icon: <FiMove className='w-6 h-auto'/>};
 
 const ToolDraw = [

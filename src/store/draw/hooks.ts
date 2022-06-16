@@ -12,13 +12,14 @@ const useIsSave = ()=>{
     })
 }
 
-const useDrawId = ()=>{
+const useBlog = ()=>{
     return useSelector((state) =>{
-        return state.draw.present.id;
+        return state.draw.present.blog;
     })
 }
+
 export const DrawHook ={
     useShape,
     useIsSave,
-    useDrawId
+    useBlog
 } 

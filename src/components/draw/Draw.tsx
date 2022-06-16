@@ -5,13 +5,16 @@ import { KEY_CODE, SHAPES, SHAPE_STROKE_WIDTH_DEFAULT, TOOLS } from '../../Const
 import { DrawToolFunctions } from '../../store/draw.tool/functions';
 import { DrawToolHook } from '../../store/draw.tool/hooks';
 import { DrawFunctions } from '../../store/draw/functions';
+import { DrawHook } from '../../store/draw/hooks';
 
 const Draw = ()=>{
     const is_ctrl_press = useRef(false);
     const is_shift_press = useRef(false);
+    const blog = DrawHook.useBlog();
     const TOOL = DrawToolHook.useTool();
 
     const handleKeyDown = (key: any)=>{
+        if(TOOL.id == TOOLS.SAVE.id) return;
         switch(key.keyCode){
             case KEY_CODE.CTRL:
                 is_ctrl_press.current = true;
@@ -108,7 +111,7 @@ const Draw = ()=>{
     return (
         <div className='bg-gray-500 text-black' tabIndex={1} onKeyDown={handleKeyDown} onKeyUp={handleKeyUp} >
             <Tool/>
-            <DrawBoard/>
+            {blog && <DrawBoard blog={blog}/>}
         </div>
     )
 }

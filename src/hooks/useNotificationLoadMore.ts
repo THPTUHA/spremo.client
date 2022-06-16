@@ -39,7 +39,8 @@ const useNotificationLoadMore = (page_num: number, page_size: number) => {
 
                     }
                 });
-                console.log("FUCK NOTU",new_value);
+                console.log("NEW ---NOTI",new_value);
+
                 setFirebaseNotifications(new_value);
                 const res = await Fetch.postWithAccessToken<{ unseen: number }>('/api/notification/unseen.get', {});
                 if (res.status == 200) {

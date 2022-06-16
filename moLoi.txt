@@ -1,0 +1,5 @@
+P(A|B,C) = P(B,C|A) * P(A) / P(B,C) = P(B|A) * P(C|A) / P(B,C); (1)
+P(_A|B,C) = P(B,C|_A) * P(_A) / P(B,C) = P(B|_A) * P(C|_A) / P(B,C); (2)
+P(B|A) = P(A,B)/P(A) = (P(A,B,H) + P(A,B, _H))/P(A) = (P(B|A,H)*P(A)*P(H) + P(B|A,_H)*P(A)*P(_H))/P(A);
+P(B|_A) = P(_A,B)/P(_A) = (P(B|_A,H)*P(_A)*P(H) + P(B|_A,_H)*P(_A)*P(_H))/P(_A);
+(1)+ (2) = 1  => P(B,C) => P(A|B,C)

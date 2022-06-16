@@ -145,7 +145,7 @@ input[type=number] {
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
-    background-color: rgb(224, 35, 41);
+    background-color: rgb(76, 35, 224);
     border-radius: 50%;
     cursor: pointer;
     outline: none;
@@ -154,11 +154,11 @@ input[type=number] {
 }
 
 .slider-container .slider::-webkit-slider-thumb:hover {
-    box-shadow: 0 0 0 5px rgba(224, 35, 41, .1);
+    box-shadow: 0 0 0 5px rgba(92, 35, 224, 0.1);
 }
 
 .slider-container .slider:active::-webkit-slider-thumb {
-    box-shadow: 0 0 0 10px rgba(224, 35, 41, .2);
+    box-shadow: 0 0 0 10px rgba(70, 35, 224, 0.2);
 }
 
 .sidebar-enter {

@@ -14,7 +14,6 @@ class Fetch {
         return this.__access_token;
     };
     async postWithAccessToken<ResponseType>(url: string, params: Object, array_fields: string[] = [], show_loading = true): Promise<AxiosPromise<ResponseType>> {
-        console.log("Token", this.__access_token);
         return await this.post<ResponseType>(url, {
             ...params,
             access_token: this.__access_token,

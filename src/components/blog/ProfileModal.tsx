@@ -1,180 +1,153 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useLayoutEffect, useState } from "react";
 import { BiMessageAltDetail } from "react-icons/bi";
 import Modal from "react-responsive-modal";
 import {useNavigate, useParams} from 'react-router-dom'
 import { useAsync } from "react-use";
-import { BLOG_TYPES, Code, FRIEND, PUBLIC } from "../../Constants";
+import { BLOG_LIST_LAYOUT, BLOG_TYPES, Code, FRIEND, PUBLIC } from "../../Constants";
 import Fetch from "../../services/Fetch";
 import { Toast } from "../../services/Toast";
 import { MeHook } from "../../store/me/hooks";
 import { RawUser } from "../../store/types";
-import Diary from "../diary/Diary";
-import DrawView from "../draw/DrawView";
-import VoiceRecord from "../voice.recorder/VoiceRecord"
 import { ChatFunctions } from '../../store/chat/funtions';
+import Follow from "../actionUser/Follow";
+import Loading from "../loading/Loading";
+import BlogList from "./BlogList";
+import { AiOutlineClose } from "react-icons/ai";
 
 interface Response{
     code: number,
     message: string,
     blogs: any[],
-    owner: RawUser,
-    users: RawUser[]
-}
-
-
-const getTypeBlog = (blog: any)=>{
-    switch(blog.type){
-        case BLOG_TYPES.COMBINE:
-            return <Diary blog = {blog}/>
-        case BLOG_TYPES.AUDIO:
-            return <VoiceRecord audio={blog}/>
-        case BLOG_TYPES.DRAW:
-            return <DrawView draw={blog}/>
-    }
+    user: RawUser,
+    users: RawUser[],
+    is_follow: boolean,
+    is_friend: boolean
 }
 
 
 const ProfileModal = ()=>{
-    const [open,setOpen] = useState(true);
-    const navigative = useNavigate();
+    const navigate = useNavigate();
     const {username} = useParams();
     const me = MeHook.useMe();
-    const [follow_status, setFollowStatus] = useState(0);
+    const [user, setUser] = useState<RawUser>();
 
     const state = useAsync(async()=>{
+        const url = me ? '/api/user/profile' : "/api/blog/profile";
+
         try {
-            const res = await Fetch.postJsonWithAccessToken<Response>("/api/blog/profile",{
+            const res = await Fetch.postJsonWithAccessToken<Response>(url,{
                 username: username
             });
 
             if(res.data){
-                const {code,message, blogs, users,owner} = res.data;
-                let follow = 0;
-                for(let i =0 ; i< owner.friends.length; ++i){
-                    if(owner.friends[i].user_id == me?.id){
-                        follow = FRIEND; break;
-                    }
-                }
-                if(!follow){
-                    for(let i =0 ; i< owner.following.length; ++i){
-                        if(owner.following[i].user_id == me?.id){
-                            follow = PUBLIC; break;
-                        }
+                const {code,message, blogs, users,user, is_follow, is_friend} = res.data;
+                if(code == Code.SUCCESS ){
+                    if(me){
+                        user.is_friend = is_friend;
+                        user.is_follow = is_follow;
+
+                        setUser(user);
                     }
                 }
 
-                setFollowStatus(follow)
-                // for(let i = 0; i< blogs.length ; ++i){
-                //     blogs[i].user = owner;
-                // }
-                if(code == Code.SUCCESS){
-                    return {
-                        blogs: blogs,
-                        users: users,
-                        owner: owner
-                    }
-                }else{
-                    Toast.error(message);
-                }
             }
         } catch (error) {
+            console.log(error);
             Toast.error("Emotional Damage!");
         }
-        return {
-            blogs: [],
-            users: [],
-            owner: {} as RawUser
-        }
-    },[])
+    },[me,username])
 
     const getChat = async()=>{
-		if(me && state.value){
-		    await ChatFunctions.get(state.value.owner.id, me);
+		if(me&& user){
+		    await ChatFunctions.get(user.id, me);
 		}
 	}
 
-    const handleUnFollow = async()=>{
-        try {
-            const res = await Fetch.postJsonWithAccessToken<{code: number, message: string}>('/api/relationship/unfollow',{
-                user_id: state.value? state.value.owner.id: 0
-            });
-            if(res.data && res.data.code == Code.SUCCESS){
-                setFollowStatus(0);
-            }   
-            Toast.error(res.data.message);
-        } catch (error) {
-            Toast.error("ERROR");
+    useLayoutEffect(()=>{
+        const body = document.getElementsByTagName("body");
+        body[0].style.overflow = "hidden";
+        return ()=>{
+            body[0].style.overflow = "";
         }
-    }
-
-    const handleFollow = async()=>{
-        try {
-            const res = await Fetch.postJsonWithAccessToken<{code: number, message: string,follow_status: number}>('/api/relationship/follow',{
-                user_id: state.value? state.value.owner.id: 0
-            });
-
-            if(res.data && res.data.code == Code.SUCCESS){
-                setFollowStatus(res.data.follow_status);
-            }   
-            Toast.error(res.data.message);
-        } catch (error) {
-            Toast.error("ERROR");
-        }
-    }
+    },[])
 
     return (
-        <Modal
-            showCloseIcon = {false}
-            classNames={{
-                modal: "rounded-lg overflow-x-hidden w-2/3 relative"
+        <div className="fixed top-0 left-0" 
+        style={{
+            backgroundColor: "rgba(0,0,0,0.6)",
+            zIndex:900,
+            height: "100vh",
+            width: "100vw"
+        }}>
+       <div className="fixed top-0 left-0 overflow-x-hidden"
+            style={{
+                zIndex:900,
+                height: "100%",
+                width: "100%",
             }}
-
-            onClose={()=>{navigative(-1)}} open={true}>
-            <>
-            <div>
+       >
+        <div className="relative flex items-center flex-col mt-10 mb-10 w-full">
+            {state.loading && <Loading/>}
+            <div className="w-4/5 flex">
+                <div>
+                    <AiOutlineClose className="w-10 h-auto text-white ml-5 cursor-pointer"
+                                    onClick={()=>{navigate(-1)}}
+                            />
+                </div>
                 {
-                    state.loading ? <div>Loading...</div>
-                        : state.value && (
-                            <div className="flex justify-center relative flex-col -m-[19px] items-center w-full">
-                                <img src ={state.value.owner.background} className="w-full h-64 rounded"/>
-                                <img src ={state.value.owner.avatar} className="w-24 h-auto absolute rounded-full top-48"/>
-                                <div className="font-medium text-2xl mt-10 mb-5">{state.value.owner.username}</div>
+                    !state.loading && user && (
+                        <div className="flex w-11/12  bg-gray-800 text-white px-2 py-2 rounded-lg">
+                            <div className="flex justify-center relative flex-col  items-center w-full px-1 border-r-[1px] border-gray-400">
+                                <img src ={user.background} className="w-full h-64 rounded-t-lg"/>
+                                <img src ={user.avatar} className="w-32 h-32 border-[6px] border-white absolute rounded-full top-44"/>
+                                <div className="font-medium text-2xl mt-12 mb-5">{user.username}</div>
                                 {
-                                    me?.id != state.value.owner.id && (
+                                    me?.id != user.id && (
                                         <div className="flex mb-5 items-center">
                                             <BiMessageAltDetail onClick={getChat} className="w-10 h-auto mr-3 cursor-pointer"/>
                                             <div className="font-medium h-5 border-l-2 border-black"></div>
                                             <div >
-                                                {
-                                                    follow_status == FRIEND 
-                                                        ?  <button onClick={handleUnFollow} className="bg-green-500 font-medium ml-3 px-1  border-rounded-lg text-white">
-                                                            UnFriend
-                                                            </button> 
-                                                        : follow_status == PUBLIC 
-                                                        ? <button onClick={handleUnFollow}  className="bg-green-500 font-medium ml-3 px-1  border-rounded-lg text-white">
-                                                            UnFollow
-                                                            </button>
-                                                        : <button onClick={handleFollow}  className="bg-green-500 font-medium ml-3 px-1  border-rounded-lg text-white">
-                                                            Follow
-                                                            </button>
-                                                }
+                                                <Follow user={user}/>
                                             </div>
                                         </div>
                                     )
                                 }
-                                <div className="w-2/3 mt-15">
-                                    {state.value.blogs.map(blog =>(
-                                        <div key={blog.id}>
-                                            {getTypeBlog(blog)}
-                                        </div>
-                                    ))}
+                                <div className="w-5/6 mt-15 ml-14">
+                                    <BlogList
+                                        url={"/api/blog/list"}
+                                        option={"view"}
+                                        layout_type={BLOG_LIST_LAYOUT.VERTICAL}
+                                        data = {{
+                                            username: username
+                                        }}
+                                        my_blog = {true}
+                                    />
                                 </div>
                             </div>
-                        )
+                            <div className='flex flex-wrap w-1/2 items-start ml-2' style={{
+                                maxHeight: 250
+                            }}>
+                                {
+                                    user.data.images.length >= 6? 
+                                        user.data.images.slice(user.data.images.length-6,user.data.images.length).map((item:any,index: number) => (
+                                            <div key={index} className="w-1/3 shadow">
+                                                <img src={item.url} style={{minHeight:110, minWidth:110, maxHeight:110, maxWidth:110}} className=" rounded border-[1px] border-gray-800"/>
+                                            </div>
+                                        ))
+                                    :user.data.images.map((item:any,index: number) => (
+                                        <div key={index} className="w-1/3 shadow ">
+                                            <img src={item.url} style={{minHeight:110, minWidth:110, maxHeight:110, maxWidth:110}} className="rounded border-[1px] border-gray-800"/>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+                    )
                 }
+                </div>
             </div>
-            </>
-        </Modal>
+       </div>
+    </div>
     )
 }
 

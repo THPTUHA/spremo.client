@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Rect, Transformer } from "react-konva";
-import { RectangleProps } from "../../../interface";
+import { RectangleProps } from "../../../store/types";
 
 const RectangleShape = ({ shape_props, is_selected, onSelect, onChange }:{shape_props: RectangleProps,is_selected: boolean,onSelect:()=>void,onChange:(attr: RectangleProps)=>void}) => {
     const shape_ref = useRef(null);
@@ -24,7 +24,6 @@ const RectangleShape = ({ shape_props, is_selected, onSelect, onChange }:{shape_
             const scaleY = node.scaleY();
             node.scaleX(1);
             node.scaleY(1);
-            console.log("Tranfer end", node);
             onChange({
                 ...shape_props,
                 rotation: Math.round(node.attrs.rotation*100)/100,

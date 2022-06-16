@@ -16,6 +16,17 @@ export default class DateUtil {
         return results.sort((b, a) => b - a);
     }
 
+    static getDayonWeek = ()=>{
+        const today = DateUtil.time();
+        let monday = DateUtil.getMonday(today);
+        let results = [];
+        while(monday <= today){
+            results.push(monday);
+            monday += 3600 *24;
+        }
+        return results;
+    }
+
     static getExactDay(t: number){
         const day = new Date(t * 1000);
         const time  = Math.floor(day.getTime()/1000);

@@ -1,4 +1,4 @@
-import Constants, { FIREBASE_CONFIG } from '../Constants';
+import  { FIREBASE_CONFIG } from '../Constants';
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 

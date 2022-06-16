@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Circle, Transformer } from "react-konva";
-import { CircleProps } from "../../../interface";
+import { CircleProps } from "../../../store/types";
 
 const CircleShape = ({ shape_props, is_selected, onSelect, onChange }:{shape_props: CircleProps,is_selected: boolean,onSelect:()=>void,onChange:(attr: CircleProps)=>void})=>{
     const shape_ref = useRef(null);

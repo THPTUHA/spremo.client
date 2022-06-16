@@ -1,7 +1,6 @@
-import {  USER_ACTION_METATYPE } from '../Constants';
 import { NextRouter } from 'next/router';
 
-import { RawPodcastChallenge, RawUser, RawUserActionLog, UploadImage } from '../store/types';
+import {RawUser } from '../store/types';
 import { RankRecord } from '../store/interface';
 // import { AppRouterContext } from "";
 
@@ -248,21 +247,6 @@ export class Helper {
         }
     }
 
-    static readDataUrl = function (file: File): Promise<UploadImage> {
-        return new Promise((resolve, reject) => {
-            var reader = new FileReader();
-            const ref_file = file;
-            reader.readAsDataURL(file);
-            reader.onloadend = (e) => {
-                resolve({
-                    src: reader.result as string,
-                    name: ref_file.name,
-                    file: ref_file
-                });
-            };
-        });
-    };
-
     static extractContentByRegex(s:string) {
         s =  s.replace(/\<(.+?)\>/g, ' ');
         if(s.length>80)s = s.substring(0,80)+"...";
@@ -316,58 +300,6 @@ export class Helper {
         }
 
         return labels;
-    }
-
-    static generateHeaderActionLog(action_log: RawUserActionLog) {
-        if (action_log.metatype === USER_ACTION_METATYPE.METATYPE_CERTIFICATE) {
-            return `${Helper.extractContent(action_log.content)}`
-        }
-
-        if (action_log.metatype === USER_ACTION_METATYPE.METATYPE_MILESTONE) {
-            return `${action_log.user_name} completed  ${action_log.content} podcasts`
-        }
-
-        if (action_log.metatype === USER_ACTION_METATYPE.METATYPE_LISTENING) {
-            if (action_log.end_time && Math.floor((action_log.end_time - action_log.start_time) / 60) > 10) {
-                return `${action_log.user_name} have listened to podcast ${action_log.podcast_name} ${action_log.podcast_sub_name} for ${Math.floor((action_log.end_time - action_log.start_time) / 60)} minutes`
-            }
-            else {
-                return `${action_log.user_name} started listening to podcast ${action_log.podcast_name} ${action_log.podcast_sub_name}`
-            }
-        }
-
-        if (action_log.metatype === USER_ACTION_METATYPE.METATYPE_SUBMIT) {
-            return `${action_log.user_name} submitted ${action_log.podcast_name} ${action_log.podcast_sub_name}`
-
-        }
-
-        if (action_log.metatype === USER_ACTION_METATYPE.METATYPE_SYSTEM) {
-            return `${action_log.content}`
-        }
-
-        return "Welcome to WELE"
-    }
-
-    static mapPointToRank = (points: number[]) => {
-        const mapping = {} as { [key: number]: number };
-        for (let i = 0; i < points.length; ++i)
-            if (!mapping[points[i]])
-                mapping[points[i]] = i + 1;
-        return mapping;
-    }
-
-    static mapUserById = (users: RawUser[]) => {
-        const mapping = {} as { [key: number]: RawUser };
-        for (const user of users)
-            mapping[user.id] = user;
-        return mapping;
-    }
-
-    static mapPodcastChallengeByPodcastId = (podcast_challenges: RawPodcastChallenge[]) => {
-        const mapping = {} as { [key: number]: RawPodcastChallenge };
-        for (const podcast_challenge of podcast_challenges)
-            mapping[podcast_challenge.podcast_id] = podcast_challenge;
-        return mapping;
     }
 
     static getRankStatus = (rank: number, rank_record: RankRecord) => {

@@ -4,6 +4,7 @@ import { ActionCreators } from "redux-undo";
 import Fetch from '../../services/Fetch';
 import { BLOG_TYPES, Code } from '../../Constants';
 import { Toast } from '../../services/Toast';
+import { RawBlog, RawDraw } from '../types';
 
 const add = (shape:any,storex = store)=>{
     storex.dispatch(DrawActions.save(shape));
@@ -17,28 +18,24 @@ const redo = (storex = store)=>{
     storex.dispatch(ActionCreators.redo());
 }
 
-const init = async(blog: any,storex = store)=>{
+const init = async(blog: RawBlog,storex = store)=>{
     storex.dispatch(DrawActions.init({
-        shapes: blog.data.shapes,
-        id: blog.id
+        shapes: (blog.data as RawDraw).shapes,
+        blog: blog
     }))
 }
 
 const create = async(emotion_id: number,storex = store)=>{
     try {
-        const res = await Fetch.postJsonWithAccessToken<{code: number,message: string,blog:any}>("/api/me/blog.create",{
+        const res = await Fetch.postJsonWithAccessToken<{code: number,message: string,blog: RawBlog}>("/api/me/blog.create",{
             type: BLOG_TYPES.DRAW,
-            emotion_id: emotion_id
+            emotion_id: emotion_id,
         });
         
         if(res.data){
             const {code,message, blog} = res.data;
-            console.log("DRAW CREATE",blog);
             if(code == Code.SUCCESS){
-                storex.dispatch(DrawActions.init({
-                    shapes: blog.data.shapes,
-                    id: blog.id
-                }))
+                await init(blog);
                 return blog
             }else{
                 Toast.error(message);
@@ -48,18 +45,12 @@ const create = async(emotion_id: number,storex = store)=>{
         console.log(error);
         Toast.error("ERROR!!");
     }
-    return  {};
+    return  {} as RawBlog;
 }
 
-const update =  async(draw_id: number, shapes: any,url:string,status: number, storex = store) =>{
+const update =  async( data: any, storex = store) =>{
     try {
-        const res = await Fetch.postWithAccessToken<{code: number,message: string}>("/api/me/blog.update",{
-            id: draw_id,
-            data: JSON.stringify(shapes),
-            url: url,
-            type: BLOG_TYPES.DRAW,
-            status: status
-        });
+        const res = await Fetch.postWithAccessToken<{code: number,message: string}>("/api/me/blog.update",data);
         if(res.data){
             const {code,message} = res.data;
             if(code == Code.SUCCESS){

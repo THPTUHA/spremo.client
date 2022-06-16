@@ -29,10 +29,24 @@ const useReset = ()=>{
     })
 }
 
+const useLocation = ()=>{
+    return useSelector((state)=>{
+        return state.style.location
+    })
+}
+
+const useBlogListLayout = ()=>{
+    return useSelector((state)=>{
+        return state.style.blog_list_layout
+    })
+}
+
 export const StyleHook  = {
     useStyle,
     useBGColor,
     useTextColor,
     useTextFont,
-    useReset
+    useReset,
+    useLocation,
+    useBlogListLayout
 } 

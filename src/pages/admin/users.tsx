@@ -5,9 +5,11 @@ import Fetch from '../../services/Fetch';
 import { RawUser } from "../../store/types";
 import { Toast } from '../../services/Toast';
 import { AiOutlineSearch } from "react-icons/ai";
+import * as _ from 'lodash';
 
 interface Response{
     users: RawUser[],
+    user: RawUser,
     code: number,
     message: string
 }
@@ -15,6 +17,7 @@ interface Response{
 
 const AdminUsers = ()=>{
     const [q,setQ] = useState("");
+    const [users, setUsers] = useState<RawUser[]>([]);
 
     const state = useAsync(async () => {
         const res = await Fetch.postWithAccessToken<Response>('/api/user/list', {
@@ -25,17 +28,12 @@ const AdminUsers = ()=>{
             if (res.data) {
                 const {code,message, users} = res.data;
                 if(code == Code.SUCCESS){
-                    return {
-                        users: users
-                    }
+                    setUsers(users);
                 }
                 Toast.error(message);
             }
         }
 
-        return {
-            users: []
-        }
     }, [q]);
 
     const handleBan = async(user_id: number)=>{
@@ -45,8 +43,9 @@ const AdminUsers = ()=>{
 
         if (res.status == 200) {
             if (res.data) {
-                const {code,message} = res.data;
+                const {code,message,user} = res.data;
                 if(code == Code.SUCCESS){
+                    _.unionBy(users, [user], x => x.id)
                     Toast.success("Banned!")
                 }
                 Toast.error(message);
@@ -62,8 +61,9 @@ const AdminUsers = ()=>{
 
         if (res.status == 200) {
             if (res.data) {
-                const {code,message} = res.data;
+                const {code,message,user} = res.data;
                 if(code == Code.SUCCESS){
+                    setUsers(_.unionBy(users, [user], x => x.id));
                     Toast.success("Banned!")
                 }
                 Toast.error(message);
@@ -79,8 +79,9 @@ const AdminUsers = ()=>{
 
         if (res.status == 200) {
             if (res.data) {
-                const {code,message} = res.data;
+                const {code,message,user} = res.data;
                 if(code == Code.SUCCESS){
+                    setUsers(_.unionBy(users, [user], x => x.id));
                     Toast.success("Promoted!")
                 }
                 Toast.error(message);
@@ -89,7 +90,7 @@ const AdminUsers = ()=>{
 
     }
     return(
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center text-white">
              <div className="flex items-center w-1/2 bg-white rounded-lg">
                 <label htmlFor='search_user' className='cursor-pointer pl-3'>
                     <AiOutlineSearch className='w-6 h-6 text-black'/>
@@ -101,34 +102,36 @@ const AdminUsers = ()=>{
                 />
             </div>
             <div className="w-1/2 mt-5">
-                {state.loading ? <div>Loading...</div>: state.value &&
+                {state.loading && <div>Loading...</div>}
                     <div className="w-full">
                         {
-                            state.value.users.map((user)=>(
+                           users.map((user)=>(
                                 <div key={user.id} className="flex w-full justify-between mb-4">
                                     <img src={user.avatar} className="w-8 h-8 rounded-full"/>
-                                    <div>{user.username}</div>
-                                    <div className="">
-                                        {
-                                            user.role == ROLES.ADMIN ?(
-                                                <span>Admin</span>
-                                            )
-                                            :user.role == ROLES.CENSOR ? (
-                                                <span>Censor</span>
-                                            )
-                                            :user.role == ROLES.DEVELOPER ? (
-                                                <span>Developer</span>
-                                            )
-                                            :user.role == ROLES.USER ? (
-                                                <span>User</span>
-                                            ):""
-                                        }
+                                    <div className="w-1/2 flex justify-between">
+                                        <div className="font-medium">{user.username}</div>
+                                        <div className="ml-3">
+                                            {
+                                                user.role == ROLES.ADMIN ?(
+                                                    <span>Admin</span>
+                                                )
+                                                :user.role == ROLES.CENSOR ? (
+                                                    <span>Censor</span>
+                                                )
+                                                :user.role == ROLES.DEVELOPER ? (
+                                                    <span>Developer</span>
+                                                )
+                                                :user.role == ROLES.USER ? (
+                                                    <span>User</span>
+                                                ):""
+                                            }
+                                        </div>
                                     </div>
-                                    <div className="">
+                                    <div className="w-1/3 flex justify-bettween">
                                         {
                                             (user.role == ROLES.CENSOR 
                                             || user.role == ROLES.DEVELOPER 
-                                            || user.role == ROLES.USER) ? ((user.active_status != -1 ) && (user.active_status != -2 )) && (
+                                            || user.role == ROLES.USER) && ((user.active_status != -1 ) && (user.active_status != -2 )) ? (
                                                 <button onClick={()=>{handleBan(user.id)}}  className="bg-red-500 px-2 py-1 rounded-lg w-12">
                                                     Ban
                                                 </button>
@@ -138,12 +141,18 @@ const AdminUsers = ()=>{
                                                 </button>
                                             )
                                         }
-                                    </div>
-                                    <div className="">
                                         {
                                             user.role == ROLES.USER && (
-                                                <button onClick={()=>{handlePromote(user.id)}} className="bg-green-500 px-2 py-1 rounded-lg w-12">
+                                                <button onClick={()=>{handlePromote(user.id)}} className="ml-5 bg-green-500 px-2 py-1 rounded-lg w-24">
                                                     Promote
+                                                </button>
+                                            )
+                                        }
+
+                                        {
+                                            user.role == ROLES.CENSOR && (
+                                                <button onClick={()=>{handlePromote(user.id)}} className="ml-5 bg-green-500 px-2 py-1 rounded-lg w-24">
+                                                    Demote
                                                 </button>
                                             )
                                         }
@@ -152,7 +161,6 @@ const AdminUsers = ()=>{
                             ))
                         }
                     </div>
-                }
             </div>
         </div>
     )

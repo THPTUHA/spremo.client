@@ -2,8 +2,8 @@ import Navbar from '../navbar/Navbar';
 import { ReactElement } from "react";
 import { StyleHook } from '../../store/style/hooks';
 import { FetchLoading } from '../loading/FetchLoading';
-import VoiceRecorderEdit from '../voice.recorder/VoiceRecorderEdit';
 import Chat from '../chat/Chat';
+import Setting from '../setting/Setting';
 
 const HomeLayout = ({children}:{children: ReactElement})=>{
     const style = StyleHook.useStyle();
@@ -11,8 +11,8 @@ const HomeLayout = ({children}:{children: ReactElement})=>{
         <div>
             <FetchLoading/>
             <Navbar/>
-            <VoiceRecorderEdit />
             <Chat/>
+            <Setting/>
             <div className='absolute w-full pt-10' 
                 style={{backgroundColor: style.bg_color,
                         font: style.text_font,

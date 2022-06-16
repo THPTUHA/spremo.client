@@ -1,94 +1,73 @@
-import {useAsync} from 'react-use'
-import Fetch from '../../services/Fetch';
-import { Helper } from "../../services/Helper";
-import { RawLike, RawUser } from '../../store/types';
-import {Code, BLOG_TYPES} from '../../Constants';
-import { MeHook } from '../../store/me/hooks';
-import { Toast } from '../../services/Toast';
-import Diary from "../../components/diary/Diary";
-import DrawView from "../../components/draw/DrawView";
-import VoiceRecord from "../../components/voice.recorder/VoiceRecord";
-import { useParams } from 'react-router-dom';
+import useBlogList from '../../hooks/useBlogList';
+import Loading from '../loading/Loading';
+import { useCallback, useRef } from 'react';
+import Vertical from './layout/Vertical';
+import { StyleHook } from '../../store/style/hooks';
+import { BLOG_LIST_LAYOUT } from '../../Constants';
+import Horizontal from './layout/Horizontal';
 
-interface BlogResponse{
-    blogs: any[],
-    users: RawUser[],
-    likes:RawLike[],
-    blog_saved: number[],
-    code: number,
-    message: string,
+interface Props{
+    url: string, 
+    my_blog?: boolean,
+    option?: string, 
+    layout_type?: number, 
+    data?:any
 }
 
-const getTypeBlog = (blog: any)=>{
-    switch(blog.type){
-        case BLOG_TYPES.COMBINE:
-            return <Diary blog = {blog}/>
-        case BLOG_TYPES.AUDIO:
-            return <VoiceRecord audio={blog}/>
-        case BLOG_TYPES.DRAW:
-            return <DrawView draw={blog}/>
-    }
-}
+const BlogList = ({url, option,layout_type, data,my_blog}: Props)=>{
+    const {
+        blogs,
+        loading,
+        load_more,
+        setPage,
+        setBlogs,
+    } = useBlogList(url,option, data)
 
-const BlogList = ()=>{
-    const me = MeHook.useMe();
-    const {q} = useParams();
+    const blog_list_layout = StyleHook.useBlogListLayout();
 
-    const state = useAsync(async () => {
-        console.log("E---",q);
-        const res = await Fetch.postWithAccessToken<BlogResponse>('/api/blog/list', {
-            q: q,
-            user_id: me? me.id : 0
-        });
-
-        if (res.status == 200) {
-            if (res.data) {
-                const {code,message, blogs, users,likes,blog_saved} = res.data;
-                console.log("BLOGS",blogs, users);
-                if(code == Code.SUCCESS){
-                    for(let i = 0;i< blogs.length ; ++i){
-                        for(let j = 0; j < likes.length ; ++j){
-                            if(blogs[i].id == likes[j].blog_id){
-                                blogs[i].emotion_id = likes[j].emotion_id;
-                                break;
-                            }
-                        }
-                        for(let j = 0 ; j < users.length ; ++j){
-                            if(blogs[i].user_id == users[j].id){
-                                blogs[i].user = users[j];
-                                break;
-                            }
-                        }
-                        for(let j = 0 ; j < blog_saved.length ; ++j){
-                            if(blogs[i].id == blog_saved[j]){
-                                blogs[i].is_marked = true;
-                                break;
-                            }
-                        }
-                    }
-                    return {
-                        blogs: blogs
-                    }
-                }
-                Toast.error(message);
+    const observer = useRef<any>();
+    const lastBlogElementRef = useCallback(node => {
+        if (loading) return;
+        if (observer.current) { observer.current.disconnect() }
+        observer.current = new IntersectionObserver(entries => {
+            if(entries[0].isIntersecting ){
             }
-        }
+            if (entries[0].isIntersecting && load_more) {
+                setPage(preState => preState + 1);
+            }
+        })
+        if (node) observer.current.observe(node)
+    }, [loading])
 
-        return {
-            blogs: []
-        }
-    }, [q,me]);
-    
+
     return (
-        <div>
+        <div className='w-full'>
             {
-                state.loading ? <div>Loading....</div>:
-                    state.value && state.value.blogs.map(blog => (
-                        <div key={blog.id} className="w-1/2 mt-10">
-                            {getTypeBlog(blog)}
-                        </div>
-                    ))
+                (blog_list_layout == BLOG_LIST_LAYOUT.VERTICAL && layout_type == undefined) || layout_type == BLOG_LIST_LAYOUT.VERTICAL
+                    ?(
+                        <Vertical blogs={blogs}
+                            my_blog={my_blog}
+                            lastBlogElementRef = {lastBlogElementRef}
+                            setBlogs = {setBlogs} 
+                            setPage = {setPage}
+                        />
+                    )
+                :(blog_list_layout == BLOG_LIST_LAYOUT.HORIZONTAL && layout_type == undefined) || layout_type == BLOG_LIST_LAYOUT.HORIZONTAL
+                    ?(
+                        <Horizontal blogs={blogs}
+                            lastBlogElementRef = {lastBlogElementRef}
+                            setBlogs = {setBlogs} 
+                            setPage = {setPage}
+                            my_blog = {my_blog}
+                        />
+                    )
+                :""
             }
+            <div className='w-full justify-center flex'>
+                {
+                    loading && <Loading/>
+                }
+            </div>
         </div>
     )
 }

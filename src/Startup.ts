@@ -1,11 +1,8 @@
 import Fetch from "./services/Fetch";
 import { MeFunctions } from './store/me/functions';
-import { PodcastCollectionFunctions } from './store/podcast.collection/functions';
 import { Helper } from "./services/Helper";
 import  firebase from 'firebase/app';
-import Constants, { FIREBASE_CONFIG } from './Constants';
-import { ChallengeFunctions } from "./store/challenge/functions";
-import { EmtionFunctions } from "./store/emotion/functions";
+import  { FIREBASE_CONFIG } from './Constants';
 import { SocketFunctions } from "./store/socket/funtions";
 
 class Startup {

@@ -1,13 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { RawBlog, ShapeType } from "../types";
 
 type State = {
-    shapes: any[],
-    id: number,
+    shapes: ShapeType[],
+    blog: RawBlog | null,
     is_save: boolean
 }
 
 const initialState : State= {
-    id: 0,
+    blog: null,
     shapes: [{key: 0}],
     is_save: false
 }
@@ -16,7 +17,7 @@ const drawSlice = createSlice({
     name: "draw",
     initialState,
     reducers:{
-       save(state, action:{payload: any}){
+       save(state, action:{payload: ShapeType[]}){
             state ={
                 ...state,
                 shapes: action.payload,
@@ -31,7 +32,7 @@ const drawSlice = createSlice({
             }
             return state;
        },
-       init(state,action:{payload: {shapes: any, id: number}}){
+       init(state,action:{payload: {shapes: ShapeType[], blog: RawBlog}}){
             state ={
                 ...state,
                 ...action.payload,

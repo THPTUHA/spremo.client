@@ -49,8 +49,16 @@ const openModal = (storex = store)=>{
     storex.dispatch(EmtionActions.readyChange(true))
 }
 
+const reset = (storex = store) =>{
+    storex.dispatch(EmtionActions.changeEmtion({
+        id: 0,
+        is_change: false
+    }))
+}
+
 export const EmtionFunctions = {
     init,
+    reset,
     set,
     openModal
 };
